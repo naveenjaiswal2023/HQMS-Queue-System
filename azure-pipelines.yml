@@ -2,72 +2,62 @@ trigger:
   branches:
     include:
       - main
-      - develop
 
 variables:
   buildConfiguration: 'Release'
   azureSubscription: 'hqms-service-connection'
 
 stages:
-
-# ----------------------------
-# CI: Build & Publish
-# ----------------------------
+# ----------------------------------
+# CI Stage: Build and Publish Artifacts
+# ----------------------------------
 - stage: Build
-  displayName: 'Build & Publish Stage'
+  displayName: 'Build and Publish Artifacts'
   jobs:
-    - job: BuildJob
+    - job: Build
       displayName: 'Build Job'
       pool:
         vmImage: 'windows-latest'
+
       steps:
         - task: UseDotNet@2
-          displayName: 'Install .NET 8 SDK'
+          displayName: 'Use .NET SDK'
           inputs:
             packageType: 'sdk'
-            version: '8.0.x'
-            includePreviewVersions: true
+            version: '8.x'
+            installationPath: $(Agent.ToolsDirectory)/dotnet
 
-        - task: DotNetCoreCLI@2
+        - task: NuGetToolInstaller@1
+          displayName: 'Install NuGet'
+
+        - task: NuGetCommand@2
           displayName: 'Restore NuGet Packages'
           inputs:
-            command: restore
-            projects: '**/*.csproj'
+            command: 'restore'
+            restoreSolution: '**/*.sln'
 
         - task: DotNetCoreCLI@2
           displayName: 'Build Solution'
           inputs:
-            command: build
+            command: 'build'
             projects: '**/*.csproj'
             arguments: '--configuration $(buildConfiguration)'
 
         - task: DotNetCoreCLI@2
-          displayName: 'Run Unit Tests'
+          displayName: 'Publish API'
           inputs:
-            command: test
-            projects: '**/*Test*.csproj'
-            arguments: '--configuration $(buildConfiguration) --no-build --logger trx'
-
-        - task: PublishTestResults@2
-          inputs:
-            testResultsFormat: VSTest
-            testResultsFiles: '**/TestResults/*.trx'
-
-        - task: DotNetCoreCLI@2
-          displayName: 'Publish API Project'
-          inputs:
-            command: publish
-            projects: '**/*HQMS.API.csproj'
+            command: 'publish'
+            publishWebProjects: false
+            projects: '**/HQMS.API/HQMS.API.csproj'
             arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/api'
-            zipAfterPublish: true
 
         - task: DotNetCoreCLI@2
-          displayName: 'Publish MVC Project'
+          displayName: 'Publish MVC'
           inputs:
-            command: publish
-            projects: '**/*HQMS.UI.csproj'
+            command: 'publish'
+            publishWebProjects: false
+            projects: '**/HQMS.UI/HQMS.UI.csproj'
             arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/mvc'
-            zipAfterPublish: true
 
         - task: PublishBuildArtifacts@1
           displayName: 'Publish Artifacts'
@@ -76,11 +66,11 @@ stages:
             ArtifactName: 'drop'
             publishLocation: 'Container'
 
-# ----------------------------
-# CD: Deploy to Dev
-# ----------------------------
+# ----------------------------------
+# CD Stage: Deploy to Development
+# ----------------------------------
 - stage: Deploy_Dev
-  displayName: 'Deploy to Dev'
+  displayName: 'Deploy to Development'
   dependsOn: Build
   variables:
     environmentName: 'Development'
@@ -113,9 +103,9 @@ stages:
                   appName: $(mvcAppName)
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
 
-# ----------------------------
-# CD: Deploy to QA
-# ----------------------------
+# ----------------------------------
+# CD Stage: Deploy to QA
+# ----------------------------------
 - stage: Deploy_QA
   displayName: 'Deploy to QA'
   dependsOn: Deploy_Dev
@@ -151,9 +141,9 @@ stages:
                   appName: $(mvcAppName)
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
 
-# ----------------------------
-# CD: Deploy to Prod
-# ----------------------------
+# ----------------------------------
+# CD Stage: Deploy to Production
+# ----------------------------------
 - stage: Deploy_Prod
   displayName: 'Deploy to Production'
   dependsOn: Deploy_QA

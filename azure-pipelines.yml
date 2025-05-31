@@ -6,15 +6,15 @@ trigger:
 
 variables:
   buildConfiguration: 'Release'
-  azureSubscription: 'RamsanAzureServiceCon'
+  azureSubscription: 'hqms-service-connection'
 
 stages:
 
-# ------------------------------------------------------
-# CI: Build & Test
-# ------------------------------------------------------
+# ----------------------------
+# CI: Build & Publish
+# ----------------------------
 - stage: Build
-  displayName: 'Build & Test Stage'
+  displayName: 'Build & Publish Stage'
   jobs:
     - job: BuildJob
       displayName: 'Build Job'
@@ -53,35 +53,45 @@ stages:
             testResultsFormat: VSTest
             testResultsFiles: '**/TestResults/*.trx'
 
+        # Publish API
         - task: DotNetCoreCLI@2
-          displayName: 'Publish App'
+          displayName: 'Publish API Project'
           inputs:
             command: publish
-            publishWebProjects: true
-            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+            projects: '**/*HQMS.API.csproj'
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/api'
+            zipAfterPublish: true
+
+        # Publish MVC
+        - task: DotNetCoreCLI@2
+          displayName: 'Publish MVC Project'
+          inputs:
+            command: publish
+            projects: '**/*HQMS.UI.csproj'
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/mvc'
             zipAfterPublish: true
 
         - task: PublishBuildArtifacts@1
-          displayName: 'Publish Artifact'
+          displayName: 'Publish Artifacts'
           inputs:
             PathtoPublish: '$(Build.ArtifactStagingDirectory)'
             ArtifactName: 'drop'
             publishLocation: 'Container'
 
-# ------------------------------------------------------
+# ----------------------------
 # CD: Deploy to Dev
-# ------------------------------------------------------
+# ----------------------------
 - stage: Deploy_Dev
-  displayName: 'Deploy to Development'
+  displayName: 'Deploy to Dev'
   dependsOn: Build
   variables:
     environmentName: 'Development'
-    resourceGroupName: 'rg-qms-dev'
-    keyVaultName: 'kv-qms-dev'
-    webAppName: 'qms-app-dev'
+    keyVaultName: 'ramsan-azure-key-vault'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
   jobs:
     - deployment: DeployDev
-      displayName: 'Deploy to Dev'
+      displayName: 'Deploy Dev Environment'
       environment: $(environmentName)
       strategy:
         runOnce:
@@ -91,35 +101,43 @@ stages:
                 artifact: drop
 
               - task: AzureKeyVault@2
-                displayName: 'Fetch Dev Secrets'
+                displayName: 'Fetch Secrets from Dev Key Vault'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   KeyVaultName: $(keyVaultName)
                   SecretsFilter: '*'
 
               - task: AzureWebApp@1
-                displayName: 'Deploy to Dev App Service'
+                displayName: 'Deploy API to Dev'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
-                  appName: $(webAppName)
-                  package: '$(Pipeline.Workspace)/drop/**/*.zip'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
 
-# ------------------------------------------------------
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to Dev'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
+
+# ----------------------------
 # CD: Deploy to QA
-# ------------------------------------------------------
+# ----------------------------
 - stage: Deploy_QA
   displayName: 'Deploy to QA'
   dependsOn: Deploy_Dev
   condition: succeeded()
   variables:
-    environmentName: 'Staging'
-    resourceGroupName: 'rg-qms-stg'
-    keyVaultName: 'kv-qms-stg'
-    webAppName: 'HospitalQueueSystem-QA'
+    environmentName: 'QA'
+    keyVaultName: 'ramsan-azure-key-vault'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
   jobs:
     - deployment: DeployQA
-      displayName: 'Deploy to QA'
+      displayName: 'Deploy QA Environment'
       environment: $(environmentName)
       strategy:
         runOnce:
@@ -129,35 +147,43 @@ stages:
                 artifact: drop
 
               - task: AzureKeyVault@2
-                displayName: 'Fetch QA Secrets'
+                displayName: 'Fetch Secrets from QA Key Vault'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   KeyVaultName: $(keyVaultName)
                   SecretsFilter: '*'
 
               - task: AzureWebApp@1
-                displayName: 'Deploy to QA App Service'
+                displayName: 'Deploy API to QA'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
-                  appName: $(webAppName)
-                  package: '$(Pipeline.Workspace)/drop/**/*.zip'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
 
-# ------------------------------------------------------
-# CD: Deploy to Prod with Rollback
-# ------------------------------------------------------
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to QA'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
+
+# ----------------------------
+# CD: Deploy to Prod
+# ----------------------------
 - stage: Deploy_Prod
   displayName: 'Deploy to Production'
   dependsOn: Deploy_QA
   condition: succeeded()
   variables:
     environmentName: 'Production'
-    resourceGroupName: 'rg-qms-prod'
-    keyVaultName: 'kv-qms-prod'
-    webAppName: 'HospitalQueueSystem'
+    keyVaultName: 'ramsan-azure-key-vault'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
   jobs:
     - deployment: DeployProd
-      displayName: 'Deploy to Prod'
+      displayName: 'Deploy Prod Environment'
       environment: $(environmentName)
       strategy:
         runOnce:
@@ -167,41 +193,24 @@ stages:
                 artifact: drop
 
               - task: AzureKeyVault@2
-                displayName: 'Fetch Prod Secrets'
+                displayName: 'Fetch Secrets from Prod Key Vault'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   KeyVaultName: $(keyVaultName)
                   SecretsFilter: '*'
 
               - task: AzureWebApp@1
-                displayName: 'Deploy to Prod App Service'
+                displayName: 'Deploy API to Prod'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
-                  appName: $(webAppName)
-                  package: '$(Pipeline.Workspace)/drop/**/*.zip'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
 
-              # Cache Artifact for Rollback
-              - task: CopyFiles@2
-                displayName: 'Cache Artifact for Rollback'
-                condition: succeeded()
-                inputs:
-                  SourceFolder: '$(Pipeline.Workspace)/drop'
-                  Contents: '**/*.zip'
-                  TargetFolder: '$(Pipeline.Workspace)/rollback'
-
-              # Rollback if deployment fails
-              - task: AzureCLI@2
-                displayName: 'Rollback to Previous Build'
-                condition: failed()
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to Prod'
                 inputs:
                   azureSubscription: $(azureSubscription)
-                  scriptType: 'ps'
-                  scriptLocation: 'inlineScript'
-                  inlineScript: |
-                    Write-Host "Deployment failed. Rolling back..."
-                    $zipPath = "$(Pipeline.Workspace)/rollback/**/*.zip"
-                    az webapp deployment source config-zip `
-                      --resource-group "$(resourceGroupName)" `
-                      --name "$(webAppName)" `
-                      --src $zipPath
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'

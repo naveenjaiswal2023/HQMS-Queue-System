@@ -86,7 +86,7 @@ stages:
   dependsOn: Build
   variables:
     environmentName: 'Development'
-    keyVaultName: 'ramsan-azure-key-vault'
+    keyVaultName: 'kv-hqms-stg'
     apiAppName: 'hqms-api'
     mvcAppName: 'hqms-ui'
   jobs:
@@ -132,7 +132,7 @@ stages:
   condition: succeeded()
   variables:
     environmentName: 'QA'
-    keyVaultName: 'ramsan-azure-key-vault'
+    keyVaultName: 'kv-hqms-stg'
     apiAppName: 'hqms-api'
     mvcAppName: 'hqms-ui'
   jobs:
@@ -174,11 +174,12 @@ stages:
 # ----------------------------
 - stage: Deploy_Prod
   displayName: 'Deploy to Production'
+  displayName: 'Deploy to Production'
   dependsOn: Deploy_QA
   condition: succeeded()
   variables:
     environmentName: 'Production'
-    keyVaultName: 'ramsan-azure-key-vault'
+    keyVaultName: 'kv-hqms-stg'
     apiAppName: 'hqms-api'
     mvcAppName: 'hqms-ui'
   jobs:

@@ -1,0 +1,216 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+variables:
+  buildConfiguration: 'Release'
+  azureSubscription: 'RamsanAzureServiceCon'
+
+stages:
+
+# ----------------------------
+# CI: Build & Publish
+# ----------------------------
+- stage: Build
+  displayName: 'Build & Publish Stage'
+  jobs:
+    - job: BuildJob
+      displayName: 'Build Job'
+      pool:
+        vmImage: 'windows-latest'
+      steps:
+        - task: UseDotNet@2
+          displayName: 'Install .NET 8 SDK'
+          inputs:
+            packageType: 'sdk'
+            version: '8.0.x'
+            includePreviewVersions: true
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Restore NuGet Packages'
+          inputs:
+            command: restore
+            projects: '**/*.csproj'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Build Solution'
+          inputs:
+            command: build
+            projects: '**/*.csproj'
+            arguments: '--configuration $(buildConfiguration)'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Run Unit Tests'
+          inputs:
+            command: test
+            projects: '**/*Test*.csproj'
+            arguments: '--configuration $(buildConfiguration) --no-build --logger trx'
+
+        - task: PublishTestResults@2
+          inputs:
+            testResultsFormat: VSTest
+            testResultsFiles: '**/TestResults/*.trx'
+
+        # Publish API
+        - task: DotNetCoreCLI@2
+          displayName: 'Publish API Project'
+          inputs:
+            command: publish
+            projects: '**/*HQMS.API.csproj'
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/api'
+            zipAfterPublish: true
+
+        # Publish MVC
+        - task: DotNetCoreCLI@2
+          displayName: 'Publish MVC Project'
+          inputs:
+            command: publish
+            projects: '**/*HQMS.UI.csproj'
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/mvc'
+            zipAfterPublish: true
+
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifacts'
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            ArtifactName: 'drop'
+            publishLocation: 'Container'
+
+# ----------------------------
+# CD: Deploy to Dev
+# ----------------------------
+- stage: Deploy_Dev
+  displayName: 'Deploy to Dev'
+  dependsOn: Build
+  variables:
+    environmentName: 'Development'
+    keyVaultName: 'ramsan-azure-key-vault'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
+  jobs:
+    - deployment: DeployDev
+      displayName: 'Deploy Dev Environment'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureKeyVault@2
+                displayName: 'Fetch Secrets from Dev Key Vault'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  KeyVaultName: $(keyVaultName)
+                  SecretsFilter: '*'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy API to Dev'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to Dev'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
+
+# ----------------------------
+# CD: Deploy to QA
+# ----------------------------
+- stage: Deploy_QA
+  displayName: 'Deploy to QA'
+  dependsOn: Deploy_Dev
+  condition: succeeded()
+  variables:
+    environmentName: 'QA'
+    keyVaultName: 'ramsan-azure-key-vault'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
+  jobs:
+    - deployment: DeployQA
+      displayName: 'Deploy QA Environment'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureKeyVault@2
+                displayName: 'Fetch Secrets from QA Key Vault'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  KeyVaultName: $(keyVaultName)
+                  SecretsFilter: '*'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy API to QA'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to QA'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
+
+# ----------------------------
+# CD: Deploy to Prod
+# ----------------------------
+- stage: Deploy_Prod
+  displayName: 'Deploy to Production'
+  dependsOn: Deploy_QA
+  condition: succeeded()
+  variables:
+    environmentName: 'Production'
+    keyVaultName: 'ramsan-azure-key-vault'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
+  jobs:
+    - deployment: DeployProd
+      displayName: 'Deploy Prod Environment'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureKeyVault@2
+                displayName: 'Fetch Secrets from Prod Key Vault'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  KeyVaultName: $(keyVaultName)
+                  SecretsFilter: '*'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy API to Prod'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to Prod'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'

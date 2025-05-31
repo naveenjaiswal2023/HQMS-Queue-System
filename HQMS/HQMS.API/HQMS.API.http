@@ -1,0 +1,6 @@
+@HQMS.API_HostAddress = http://localhost:5122
+
+GET {{HQMS.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

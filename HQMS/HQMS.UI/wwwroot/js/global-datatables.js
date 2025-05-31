@@ -1,0 +1,26 @@
+﻿$(document).ready(function () {
+    $('.datatable').DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        lengthChange: false,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        pageLength: 25,
+        columnDefs: [
+            {
+                targets: 0,  // First column
+                searchable: false,
+                orderable: false,
+            }
+        ],
+        order: [[1, 'asc']], // Default sorting by Name
+        drawCallback: function (settings) {
+            let api = this.api();
+            api.column(0, { search: 'applied', order: 'applied', page: 'current' })
+                .nodes()
+                .each(function (cell, i) {
+                    cell.innerHTML = i + 1 + settings._iDisplayStart;
+                });
+        }
+    });
+});

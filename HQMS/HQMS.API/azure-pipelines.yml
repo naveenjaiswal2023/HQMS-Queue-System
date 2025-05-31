@@ -1,0 +1,207 @@
+﻿trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+variables:
+  buildConfiguration: 'Release'
+  azureSubscription: 'RamsanAzureServiceCon'
+
+stages:
+
+# ------------------------------------------------------
+# CI: Build & Test
+# ------------------------------------------------------
+- stage: Build
+  displayName: 'Build & Test Stage'
+  jobs:
+    - job: BuildJob
+      displayName: 'Build Job'
+      pool:
+        vmImage: 'windows-latest'
+      steps:
+        - task: UseDotNet@2
+          displayName: 'Install .NET 8 SDK'
+          inputs:
+            packageType: 'sdk'
+            version: '8.0.x'
+            includePreviewVersions: true
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Restore NuGet Packages'
+          inputs:
+            command: restore
+            projects: '**/*.csproj'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Build Solution'
+          inputs:
+            command: build
+            projects: '**/*.csproj'
+            arguments: '--configuration $(buildConfiguration)'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Run Unit Tests'
+          inputs:
+            command: test
+            projects: '**/*Test*.csproj'
+            arguments: '--configuration $(buildConfiguration) --no-build --logger trx'
+
+        - task: PublishTestResults@2
+          inputs:
+            testResultsFormat: VSTest
+            testResultsFiles: '**/TestResults/*.trx'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Publish App'
+          inputs:
+            command: publish
+            publishWebProjects: true
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+            zipAfterPublish: true
+
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact'
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            ArtifactName: 'drop'
+            publishLocation: 'Container'
+
+# ------------------------------------------------------
+# CD: Deploy to Dev
+# ------------------------------------------------------
+- stage: Deploy_Dev
+  displayName: 'Deploy to Development'
+  dependsOn: Build
+  variables:
+    environmentName: 'Development'
+    resourceGroupName: 'rg-qms-dev'
+    keyVaultName: 'kv-qms-dev'
+    webAppName: 'qms-app-dev'
+  jobs:
+    - deployment: DeployDev
+      displayName: 'Deploy to Dev'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureKeyVault@2
+                displayName: 'Fetch Dev Secrets'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  KeyVaultName: $(keyVaultName)
+                  SecretsFilter: '*'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy to Dev App Service'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(webAppName)
+                  package: '$(Pipeline.Workspace)/drop/**/*.zip'
+
+# ------------------------------------------------------
+# CD: Deploy to QA
+# ------------------------------------------------------
+- stage: Deploy_QA
+  displayName: 'Deploy to QA'
+  dependsOn: Deploy_Dev
+  condition: succeeded()
+  variables:
+    environmentName: 'Staging'
+    resourceGroupName: 'rg-qms-stg'
+    keyVaultName: 'kv-qms-stg'
+    webAppName: 'HospitalQueueSystem-QA'
+  jobs:
+    - deployment: DeployQA
+      displayName: 'Deploy to QA'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureKeyVault@2
+                displayName: 'Fetch QA Secrets'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  KeyVaultName: $(keyVaultName)
+                  SecretsFilter: '*'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy to QA App Service'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(webAppName)
+                  package: '$(Pipeline.Workspace)/drop/**/*.zip'
+
+# ------------------------------------------------------
+# CD: Deploy to Prod with Rollback
+# ------------------------------------------------------
+- stage: Deploy_Prod
+  displayName: 'Deploy to Production'
+  dependsOn: Deploy_QA
+  condition: succeeded()
+  variables:
+    environmentName: 'Production'
+    resourceGroupName: 'rg-qms-prod'
+    keyVaultName: 'kv-qms-prod'
+    webAppName: 'HospitalQueueSystem'
+  jobs:
+    - deployment: DeployProd
+      displayName: 'Deploy to Prod'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureKeyVault@2
+                displayName: 'Fetch Prod Secrets'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  KeyVaultName: $(keyVaultName)
+                  SecretsFilter: '*'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy to Prod App Service'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(webAppName)
+                  package: '$(Pipeline.Workspace)/drop/**/*.zip'
+
+              # Cache Artifact for Rollback
+              - task: CopyFiles@2
+                displayName: 'Cache Artifact for Rollback'
+                condition: succeeded()
+                inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/drop'
+                  Contents: '**/*.zip'
+                  TargetFolder: '$(Pipeline.Workspace)/rollback'
+
+              # Rollback if deployment fails
+              - task: AzureCLI@2
+                displayName: 'Rollback to Previous Build'
+                condition: failed()
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  scriptType: 'ps'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    Write-Host "Deployment failed. Rolling back..."
+                    $zipPath = "$(Pipeline.Workspace)/rollback/**/*.zip"
+                    az webapp deployment source config-zip `
+                      --resource-group "$(resourceGroupName)" `
+                      --name "$(webAppName)" `
+                      --src $zipPath

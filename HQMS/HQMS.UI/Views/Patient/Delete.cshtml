@@ -1,0 +1,9 @@
+﻿@model PatientModel
+<h2>Delete Patient</h2>
+<p>Are you sure you want to delete patient: <strong>@Model.Name</strong>?</p>
+
+<form asp-action="Delete">
+    <input type="hidden" asp-for="PatientId" />
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

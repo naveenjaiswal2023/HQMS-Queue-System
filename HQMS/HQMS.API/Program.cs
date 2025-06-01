@@ -209,7 +209,7 @@ builder.Services.AddCors(options =>
         policyBuilder
             .WithOrigins(
                 "https://localhost:7026",      // React dev server
-                "https://hqms-ui-bwgnfqd6f6abg0es.eastasia-01.azurewebsites.net/"      // Angular dev server
+                "https://hqms-ui-bwgnfqd6f6abg0es.eastasia-01.azurewebsites.net"      // Azure dev server
                 //"https://yourdomain.com",      // Production frontend
                 //"https://www.yourdomain.com",  // Production frontend with www
                 //"https://staging.yourdomain.com" // Staging environment

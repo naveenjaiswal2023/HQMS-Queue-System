@@ -120,7 +120,7 @@
     }
 
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:7256/NotificationHub") // Your actual API hub URL
+        .withUrl("https://hqms-api-epd3hxchgqb9brd4.eastasia-01.azurewebsites.net/NotificationHub") // Your actual API hub URL
         .build();
 
     connection.on("ReceiveNotification", function (eventName, message) {

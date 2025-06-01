@@ -18,12 +18,12 @@ builder.Services.Configure<ApiSettings>(
     builder.Configuration.GetSection("ApiSettings"));
 
 // Add Azure Key Vault secrets if VaultUrl is configured
-//var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
-//if (!string.IsNullOrEmpty(keyVaultUrl))
-//{
-//    var credential = new DefaultAzureCredential();
-//    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
-//}
+var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
+if (!string.IsNullOrEmpty(keyVaultUrl))
+{
+    var credential = new DefaultAzureCredential();
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+}
 
 // Final configuration object (after Key Vault is loaded)
 var configuration = builder.Configuration;

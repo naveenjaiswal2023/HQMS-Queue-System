@@ -1,15 +1,49 @@
+﻿using Azure.Identity;
 using HospitalQueueSystem.Web.Extensions;
 using HospitalQueueSystem.Web.Hubs;
 using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
 using HospitalQueueSystem.Web.Services;
+using HQMS.UI.Middlewares;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Serilog;
+using Serilog.Events;
+using Azure.Security.KeyVault.Secrets;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 //builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 builder.Services.Configure<ApiSettings>(
     builder.Configuration.GetSection("ApiSettings"));
+
+// Add Azure Key Vault secrets if VaultUrl is configured
+var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
+if (!string.IsNullOrEmpty(keyVaultUrl))
+{
+    var credential = new DefaultAzureCredential();
+
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+}
+
+// Final configuration object (after Key Vault is loaded)
+var configuration = builder.Configuration;
+
+// Extract secrets
+var blobStorageConnectionString = configuration["BlobStorageConnectionString"];
+var blobContainerName = configuration["Logging:BlobStorage:ContainerName"];
+
+// Configure Serilog with Azure Blob Storage
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .WriteTo.AzureBlobStorage(
+        connectionString: blobStorageConnectionString,
+        storageContainerName: blobContainerName,
+        storageFileName: "log-{yyyyMMdd}.txt",
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
+        restrictedToMinimumLevel: LogEventLevel.Information)
+    .CreateLogger();
 
 
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -81,6 +115,8 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+// 🛡️ Global Exception Handling (should be FIRST to catch all exceptions)
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

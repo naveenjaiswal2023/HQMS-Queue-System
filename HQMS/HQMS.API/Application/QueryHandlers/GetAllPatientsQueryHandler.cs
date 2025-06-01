@@ -55,16 +55,17 @@ namespace HospitalQueueSystem.Application.QueryHandlers
                 }
 
                 var serializedPatients = JsonSerializer.Serialize(patients);
-                await _cache.SetStringAsync(
-                    PatientListCacheKey,
-                    serializedPatients,
-                    new DistributedCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
-                    });
+                //await _cache.SetStringAsync(
+                //    PatientListCacheKey,
+                //    serializedPatients,
+                //    new DistributedCacheEntryOptions
+                //    {
+                //        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
+                //    });
 
-                _logger.LogInformation("Patient list cached to Redis successfully.");
-                return patients;
+                //_logger.LogInformation("Patient list cached to Redis successfully.");
+                //return patients;
+                return serializedPatients is not null ? JsonSerializer.Deserialize<List<PatientRegisteredEvent>>(serializedPatients) : new List<PatientRegisteredEvent>();
             }
             catch (Exception ex)
             {

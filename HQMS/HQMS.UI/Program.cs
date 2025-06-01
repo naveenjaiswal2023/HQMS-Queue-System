@@ -53,7 +53,7 @@ try
         .WriteTo.AzureBlobStorage(
             connectionString: blobStorageConnectionString,
             storageContainerName: blobContainerName,
-            storageFileName: "log-{yyyyMMdd}.txt",
+            storageFileName: "hqms-ui-log-{yyyyMMdd}.txt",
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
             restrictedToMinimumLevel: LogEventLevel.Information)
         .CreateLogger();
@@ -103,19 +103,6 @@ builder.Services.AddAuthorization();
 
 // Register custom API service extension
 builder.Services.AddApiService();
-
-// Optional: configure CORS
-// builder.Services.AddCors(options =>
-// {
-//     options.AddDefaultPolicy(policy =>
-//     {
-//         policy.WithOrigins("https://localhost:3000", "https://localhost:4200")
-//               .AllowAnyHeader()
-//               .AllowAnyMethod()
-//               .AllowCredentials();
-//     });
-// });
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline

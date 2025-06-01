@@ -65,7 +65,7 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.AzureBlobStorage(
         connectionString: blobStorageConnectionString,
         storageContainerName: blobContainerName,
-        storageFileName: "log-{yyyyMMdd}.txt",
+        storageFileName: "hqms-api-log-{yyyyMMdd}.txt",
         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
         restrictedToMinimumLevel: LogEventLevel.Information)
     .CreateLogger();

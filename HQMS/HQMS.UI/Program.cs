@@ -1,4 +1,6 @@
 ﻿using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using HospitalQueueSystem.Web.Extensions;
 using HospitalQueueSystem.Web.Hubs;
 using HospitalQueueSystem.Web.Interfaces;
@@ -8,23 +10,20 @@ using HQMS.UI.Middlewares;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Serilog;
 using Serilog.Events;
-using Azure.Security.KeyVault.Secrets;
-using Azure.Extensions.AspNetCore.Configuration.Secrets;
 
 var builder = WebApplication.CreateBuilder(args);
-// Add services to the container.
-//builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
+
+// Add configuration from appsettings.json and environment variables
 builder.Services.Configure<ApiSettings>(
     builder.Configuration.GetSection("ApiSettings"));
 
 // Add Azure Key Vault secrets if VaultUrl is configured
-var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
-if (!string.IsNullOrEmpty(keyVaultUrl))
-{
-    var credential = new DefaultAzureCredential();
-
-    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
-}
+//var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
+//if (!string.IsNullOrEmpty(keyVaultUrl))
+//{
+//    var credential = new DefaultAzureCredential();
+//    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+//}
 
 // Final configuration object (after Key Vault is loaded)
 var configuration = builder.Configuration;
@@ -45,24 +44,22 @@ Log.Logger = new LoggerConfiguration()
         restrictedToMinimumLevel: LogEventLevel.Information)
     .CreateLogger();
 
+builder.Host.UseSerilog();
 
+// Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpClient<IPatientService, PatientService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 
-
-// Add services to the container.
 builder.Services.AddControllersWithViews()
     .AddViewOptions(options =>
     {
         options.HtmlHelperOptions.ClientValidationEnabled = true;
     });
+
 builder.Services.AddSignalR();
 
-// Add HttpClient
-builder.Services.AddHttpClient();
-
-// Add Session support
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -71,7 +68,6 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Use Always in production
 });
 
-// Add Cookie Authentication for MVC
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
@@ -84,60 +80,62 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Use Always in production
     });
 
-// Add Authorization
 builder.Services.AddAuthorization();
 
-// Add your API service
+// Custom API service
 builder.Services.AddApiService();
 
 // CORS Configuration
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policyBuilder =>
-    {
-        policyBuilder
-            .WithOrigins(
-                "https://localhost:3000",
-                "https://localhost:4200",
-                "https://yourdomain.com"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddDefaultPolicy(policyBuilder =>
+//    {
+//        policyBuilder
+//            .WithOrigins(
+//                "https://localhost:3000",
+//                "https://localhost:4200",
+//                "https://yourdomain.com"
+//            )
+//            .AllowAnyHeader()
+//            .AllowAnyMethod()
+//            .AllowCredentials();
+//    });
+//});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-// 🛡️ Global Exception Handling (should be FIRST to catch all exceptions)
+
+// 🛡️ Global Exception Handling Middleware (early in pipeline)
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Add Session middleware
-builder.Services.AddSession();
+// Session Middleware
 app.UseSession();
 
 app.UseRouting();
 
 app.UseCors();
 
-// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Optional: Serilog request logging
+app.UseSerilogRequestLogging();
+
+// MVC routing
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auth}/{action=Login}/{id?}");
 
-// Map SignalR hub
+// SignalR hub
 app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

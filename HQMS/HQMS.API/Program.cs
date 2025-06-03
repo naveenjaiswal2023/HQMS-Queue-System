@@ -156,8 +156,8 @@ builder.Services.AddSingleton(new List<TopicSubscriptionPair>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<PatientController>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IPatientRepository, PatientRepository>();
-builder.Services.AddScoped<IQueueRepository, QueueRepository>();
+//builder.Services.AddScoped<IPatientRepository, PatientRepository>();
+//builder.Services.AddScoped<IQueueRepository, QueueRepository>();
 
 // Event Handlers
 builder.Services.AddScoped<DoctorQueueCreatedEventHandler>();

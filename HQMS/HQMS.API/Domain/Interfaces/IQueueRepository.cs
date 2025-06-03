@@ -1,13 +1,10 @@
 ﻿using HospitalQueueSystem.Domain.Entities;
 
-namespace HospitalQueueSystem.Domain.Interfaces
+namespace HQMS.API.Domain.Interfaces
 {
-    public interface IQueueRepository
+    public interface IQueueRepository : IRepository<QueueEntry>
     {
-        Task<QueueEntry> GetByIdAsync(string id);
         Task<List<QueueEntry>> GetQueueByDoctorIdAsync(int doctorId);
-        Task AddAsync(QueueEntry entry);
-        Task UpdateAsync(QueueEntry entry);
     }
 
 }

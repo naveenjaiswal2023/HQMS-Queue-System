@@ -1,70 +1,62 @@
 ﻿using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 namespace HospitalQueueSystem.Web.Services
 {
-    // Services/PatientService.cs
     public class PatientService : IPatientService
     {
-        private readonly HttpClient _httpClient;
+        private readonly ApiService _apiService;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly string _apiBaseUrl;
 
-        public PatientService(HttpClient httpClient, IHttpContextAccessor httpContextAccessor, IOptions<ApiSettings> apiSettings)
+        public PatientService(ApiService apiService, IHttpContextAccessor httpContextAccessor)
         {
-            _httpClient = httpClient;
+            _apiService = apiService;
             _httpContextAccessor = httpContextAccessor;
-            if (apiSettings?.Value == null)
-                throw new ArgumentNullException(nameof(apiSettings), "ApiSettings is not configured properly.");
-            _apiBaseUrl = apiSettings.Value.BaseUrl;
-            
         }
 
-        private void AddJwtToken()
-        {
-            var token = _httpContextAccessor.HttpContext.Session.GetString("JwtToken");
-            if (!string.IsNullOrEmpty(token))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-        }
+        //private void SetJwtHeader()
+        //{
+        //    var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+        //    if (!string.IsNullOrEmpty(token))
+        //    {
+        //        _apiService.SetAuthorizationHeader(token);
+        //    }
+        //}
 
         public async Task<List<PatientModel>> GetAllAsync()
         {
-            AddJwtToken();
-            var endpoint = new Uri(new Uri(_apiBaseUrl.TrimEnd('/') + "/"), "Patient/GetAllPatients");
-            return await _httpClient.GetFromJsonAsync<List<PatientModel>>(endpoint);
+            var response = await _apiService.GetAsync<List<PatientModel>>("Patient/GetAllPatients");
+            return response?.Data ?? new List<PatientModel>();
         }
 
-        public async Task<PatientModel> GetByIdAsync(Guid id)
+        public async Task<PatientModel?> GetByIdAsync(Guid id)
         {
-            AddJwtToken();
-            var endpoint = new Uri(new Uri(_apiBaseUrl.TrimEnd('/') + "/"), "Patient");
-            return await _httpClient.GetFromJsonAsync<PatientModel>($"{endpoint}/{id}");
+            var response = await _apiService.GetAsync<PatientModel>($"Patient/{id}");
+            return response?.Data;
         }
 
         public async Task CreateAsync(PatientModel patient)
         {
-            AddJwtToken();
-            var endpoint = new Uri(new Uri(_apiBaseUrl.TrimEnd('/') + "/"), "Patient/RegisterPatient");
-            await _httpClient.PostAsJsonAsync(endpoint, patient);
+            var response = await _apiService.PostAsync<object>("Patient/RegisterPatient", patient);
+            if (!response.Succeeded)
+                throw new Exception(response.Message ?? "Failed to create patient.");
         }
 
         public async Task UpdateAsync(Guid id, PatientModel patient)
         {
-            AddJwtToken();
-            var endpoint = new Uri(new Uri(_apiBaseUrl.TrimEnd('/') + "/"), "Patient");
-            await _httpClient.PutAsJsonAsync($"{_apiBaseUrl}/{id}", endpoint);
+            var response = await _apiService.PutAsync<object>($"Patient/{id}", patient);
+            if (!response.Succeeded)
+                throw new Exception(response.Message ?? "Failed to update patient.");
         }
 
         public async Task DeleteAsync(Guid id)
         {
-            AddJwtToken();
-            var endpoint = new Uri(new Uri(_apiBaseUrl.TrimEnd('/') + "/"), "Patient");
-            await _httpClient.DeleteAsync($"{endpoint}/{id}");
+            var response = await _apiService.DeleteAsync<object>($"Patient/{id}");
+            if (!response.Succeeded)
+                throw new Exception(response.Message ?? "Failed to delete patient.");
         }
-    }
 
+    }
 }

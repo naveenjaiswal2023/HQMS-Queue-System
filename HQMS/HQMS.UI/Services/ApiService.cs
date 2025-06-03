@@ -1,5 +1,10 @@
-﻿using System.Text;
+﻿using HospitalQueueSystem.Web.Models;
+using Microsoft.Extensions.Options;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
+using System.Web.Helpers;
 
 namespace HospitalQueueSystem.Web.Services
 {
@@ -7,57 +12,91 @@ namespace HospitalQueueSystem.Web.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly string _baseUrl;
 
-        public ApiService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+        public ApiService(IHttpClientFactory httpClientFactory, IOptions<ApiSettings> options, IHttpContextAccessor httpContextAccessor)
         {
+            if (options?.Value == null || string.IsNullOrWhiteSpace(options.Value.BaseUrl))
+                throw new ArgumentNullException(nameof(options), "API base URL is not configured.");
+
             _httpClientFactory = httpClientFactory;
+            _baseUrl = options.Value.BaseUrl.TrimEnd('/');
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<HttpResponseMessage> GetAsync(string endpoint)
+        private HttpClient CreateClient()
         {
-            var client = CreateAuthorizedClient();
-            return await client.GetAsync(endpoint);
+            return _httpClientFactory.CreateClient("AuthorizedClient");
         }
 
-        public async Task<HttpResponseMessage> PostAsync(string endpoint, object data)
+        private static StringContent SerializeContent(object data)
         {
-            var client = CreateAuthorizedClient();
             var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            return await client.PostAsync(endpoint, content);
+            return new StringContent(json, Encoding.UTF8, "application/json");
         }
 
-        public async Task<HttpResponseMessage> PutAsync(string endpoint, object data)
+        private static async Task<ApiResponse<T>?> HandleResponse<T>(HttpResponseMessage response)
         {
-            var client = CreateAuthorizedClient();
-            var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            return await client.PutAsync(endpoint, content);
-        }
+            var content = await response.Content.ReadAsStringAsync();
 
-        public async Task<HttpResponseMessage> DeleteAsync(string endpoint)
-        {
-            var client = CreateAuthorizedClient();
-            return await client.DeleteAsync(endpoint);
-        }
-
-        private HttpClient CreateAuthorizedClient()
-        {
-            var client = _httpClientFactory.CreateClient();
-            client.BaseAddress = new Uri("https://localhost:7256/api/");
-
-            // Get JWT token from session
-            var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
-
-            if (!string.IsNullOrEmpty(token))
+            if (!response.IsSuccessStatusCode)
             {
-                // Add JWT token to Authorization header
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                throw new HttpRequestException($"Request failed with status code: {response.StatusCode}.\nContent: {content}");
             }
 
-            return client;
+            return JsonSerializer.Deserialize<ApiResponse<T>>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
         }
+
+
+        private static Uri CombineUri(string baseUrl, string endpoint)
+        {
+            return new Uri(new Uri(baseUrl + "/"), endpoint.TrimStart('/'));
+        }
+
+        public async Task<ApiResponse<T>?> GetAsync<T>(string endpoint)
+        {
+            var client = CreateClient();
+            var fullUri = CombineUri(_baseUrl, endpoint);
+            var response = await client.GetAsync(fullUri);
+            return await HandleResponse<T>(response);
+        }
+
+        public async Task<ApiResponse<T>?> PostAsync<T>(string endpoint, object data)
+        {
+            var client = CreateClient();
+            var content = SerializeContent(data);
+            var fullUri = CombineUri(_baseUrl, endpoint);
+            var response = await client.PostAsync(fullUri, content);
+            return await HandleResponse<T>(response);
+        }
+
+        public async Task<ApiResponse<T?>> PutAsync<T>(string endpoint, object data)
+        {
+            var client = CreateClient();
+            var response = await client.PutAsync(CombineUri(_baseUrl, endpoint), SerializeContent(data));
+            return await HandleResponse<T>(response);
+        }
+        public async Task<ApiResponse<T?>> DeleteAsync<T>(string endpoint)
+        {
+            var client = CreateClient();
+            var response = await client.DeleteAsync(CombineUri(_baseUrl, endpoint));
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                // If no content returned, assume success with default T value
+                return new ApiResponse<T?>
+                {
+                    Succeeded = true,
+                    Data = default,
+                    Message = "Deleted successfully."
+                };
+            }
+
+            return await HandleResponse<T>(response);
+        }
+
     }
 }

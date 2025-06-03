@@ -1,12 +1,14 @@
-﻿using Azure.Identity;
+﻿using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
-using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using HospitalQueueSystem.Web.Extensions;
 using HospitalQueueSystem.Web.Hubs;
 using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
 using HospitalQueueSystem.Web.Services;
+using HQMS.UI.Handlers;
 using HQMS.UI.Middlewares;
+using HQMS.UI.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Serilog;
 using Serilog.Events;
@@ -16,6 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure strongly typed settings
 builder.Services.Configure<ApiSettings>(
     builder.Configuration.GetSection("ApiSettings"));
+
+builder.Services.Configure<SignalRSettings>(builder.Configuration.GetSection("SignalR"));
+
 
 // Add Azure Key Vault secrets if VaultUrl is configured
 var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
@@ -47,18 +52,21 @@ var blobContainerName = configuration["Logging:BlobStorage:ContainerName"];
 // Configure Serilog
 try
 {
-    Log.Logger = new LoggerConfiguration()
-        .MinimumLevel.Information()
-        .WriteTo.Console()
-        .WriteTo.AzureBlobStorage(
-            connectionString: blobStorageConnectionString,
-            storageContainerName: blobContainerName,
-            storageFileName: "hqms-ui-log-{yyyyMMdd}.txt",
-            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
-            restrictedToMinimumLevel: LogEventLevel.Information)
-        .CreateLogger();
+    builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+    {
+        loggerConfiguration
+            .MinimumLevel.Information()
+            .WriteTo.Console()
+            .WriteTo.AzureBlobStorage(
+                connectionString: blobStorageConnectionString,
+                storageContainerName: blobContainerName,
+                storageFileName: "hqms-ui-log-{yyyyMMdd}.txt",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
+                restrictedToMinimumLevel: LogEventLevel.Information)
+            .ReadFrom.Configuration(context.Configuration)     // ✅ Required for appsettings.json logging config
+            .ReadFrom.Services(services);                      // ✅ Required to register DiagnosticContext
+    });
 
-    builder.Host.UseSerilog();
     Console.WriteLine("✅ Serilog configured.");
 }
 catch (Exception ex)
@@ -66,10 +74,22 @@ catch (Exception ex)
     Console.WriteLine($"❌ Serilog configuration failed: {ex.Message}");
 }
 
+
+// DI registrations
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddHttpClient("AuthorizedClient", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
+})
+.AddHttpMessageHandler<AuthorizationHandler>();
+
+// Register AuthorizationHandler
+builder.Services.AddTransient<AuthorizationHandler>();
+
+builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddHttpClient<IPatientService, PatientService>();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient();
+builder.Services.AddScoped<IPatientService, PatientService>();
+
 
 builder.Services.AddControllersWithViews()
     .AddViewOptions(options =>

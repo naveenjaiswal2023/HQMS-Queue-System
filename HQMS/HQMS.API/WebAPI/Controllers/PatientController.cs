@@ -4,8 +4,10 @@ using HospitalQueueSystem.Application.Commands;
 using HospitalQueueSystem.Application.DTO;
 using HospitalQueueSystem.Application.Queries;
 using HospitalQueueSystem.Application.Services;
+using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Events;
 using HospitalQueueSystem.Domain.Interfaces;
+using HQMS.API.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -40,24 +42,40 @@ namespace HospitalQueueSystem.WebAPI.Controllers
                     string.IsNullOrWhiteSpace(model.Department) ||
                     model.Age <= 0)
                 {
-                    return BadRequest("Invalid patient data.");
+                    return BadRequest(new ApiResponse<string>
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "Invalid patient data."
+                    });
                 }
 
-                // Updated to pass the required parameters to RegisterPatientCommand
                 var command = new RegisterPatientCommand(model.Name, model.Age, model.Gender, model.Department);
                 var result = await _mediator.Send(command);
 
                 if (result)
-                    return Ok("Patient registered successfully.");
+                    return Ok(new ApiResponse<string>
+                    {
+                        IsSuccess = true,
+                        ErrorMessage = "Patient registered successfully."
+                    });
                 else
-                    return StatusCode(500, "Registration failed due to an internal error.");
+                    return StatusCode(500, new ApiResponse<string>
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "Registration failed due to an internal error."
+                    });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while registering patient");
-                return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
+                return StatusCode(500, new ApiResponse<string>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"An unexpected error occurred: {ex.Message}"
+                });
             }
         }
+
 
         [HttpGet("GetAllPatients")]
         public async Task<IActionResult> GetAllPatients()
@@ -65,16 +83,27 @@ namespace HospitalQueueSystem.WebAPI.Controllers
             try
             {
                 var result = await _mediator.Send(new GetAllPatientsQuery());
-                return Ok(result);
+
+                var response = new ApiResponse<List<PatientRegisteredEvent>>
+                {
+                    IsSuccess = true,
+                    Data = result
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                // You could also use a logger here if available
                 _logger.LogError(ex, "Error occurred while fetching patients.");
 
-                return StatusCode(500, $"An error occurred while retrieving patients: {ex.Message}");
+                return StatusCode(500, new ApiResponse<List<Patient>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "An error occurred while retrieving patients."
+                });
             }
         }
+
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePatient(string id, [FromBody] PatientUpdatedEvent model)
@@ -82,22 +111,23 @@ namespace HospitalQueueSystem.WebAPI.Controllers
             try
             {
                 if (id != model.PatientId)
-                    return BadRequest("Patient ID mismatch.");
+                    return BadRequest(new ApiResponse<string> { IsSuccess = false, ErrorMessage = "Patient ID mismatch." });
 
                 var command = new UpdatePatientCommand(model);
                 var result = await _mediator.Send(command);
 
                 if (!result)
-                    return NotFound("Patient not found or update failed.");
+                    return NotFound(new ApiResponse<string> { IsSuccess = false, ErrorMessage = "Patient not found or update failed." });
 
-                return Ok("Patient updated successfully.");
+                return Ok(new ApiResponse<string> { IsSuccess = true, ErrorMessage = "Patient updated successfully." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating patient with ID {PatientId}", id);
-                return StatusCode(500, "An error occurred while updating the patient.");
+                return StatusCode(500, new ApiResponse<string> {IsSuccess = false, ErrorMessage = "An error occurred while updating the patient." });
             }
         }
+
 
         // DELETE: api/patient/{id}
         [HttpDelete("{id}")]
@@ -109,15 +139,16 @@ namespace HospitalQueueSystem.WebAPI.Controllers
                 var result = await _mediator.Send(command);
 
                 if (!result)
-                    return NotFound("Patient not found or deletion failed.");
+                    return NotFound(new ApiResponse<string> {IsSuccess = false, ErrorMessage = "Patient not found or deletion failed." });
 
-                return Ok("Patient deleted successfully.");
+                return Ok(new ApiResponse<string> {IsSuccess = true, ErrorMessage = "Patient deleted successfully." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting patient with ID {PatientId}", id);
-                return StatusCode(500, "An error occurred while deleting the patient.");
+                return StatusCode(500, new ApiResponse<string> {IsSuccess = false, ErrorMessage = "An error occurred while deleting the patient." });
             }
         }
+
     }
 }

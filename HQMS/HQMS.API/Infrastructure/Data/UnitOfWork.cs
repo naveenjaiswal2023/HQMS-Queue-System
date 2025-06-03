@@ -1,5 +1,8 @@
-﻿using HospitalQueueSystem.Domain.Interfaces;
+﻿using HospitalQueueSystem.Domain.Entities;
+using HospitalQueueSystem.Domain.Interfaces;
 using HospitalQueueSystem.Infrastructure.Repositories;
+using HQMS.API.Domain.Interfaces;
+using HQMS.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Data;
@@ -10,34 +13,41 @@ namespace HospitalQueueSystem.Infrastructure.Data
     {
         private readonly ApplicationDbContext _dbContext;
         private IDbContextTransaction _transaction;
-
-        public IPatientRepository _PatientsRepository;
+        private IRepository<Patient> _patientRepository;
         private IQueueRepository _queueRepository;
+        private IRepository<DoctorQueue> _doctorQueueRepository;
+        public IRepository<Patient> Patients { get; }
+        public IRepository<DoctorQueue> Queues { get; }
+        public IRepository<QueueEntry> QueuesEntries { get; }
+        
 
         public ApplicationDbContext Context => _dbContext;
 
-       // public IPatientRepository Patients => throw new NotImplementedException();
-        public IPatientRepository PatientRepository
+        public IRepository<Patient> PatientRepository
         {
             get
             {
-                return _PatientsRepository ??= new PatientRepository(_dbContext);
+                if (_patientRepository == null)
+                    _patientRepository = new PatientRepository(_dbContext);
+                return _patientRepository;
             }
         }
 
-        public IQueueRepository QueueRepository
-        {
-            get
-            {
-                return _queueRepository ??= new QueueRepository(_dbContext);
-            }
-        }
+        //public IRepository<Patient> PatientRepository => throw new NotImplementedException();
 
-        public UnitOfWork(ApplicationDbContext dbContext, IPatientRepository patientRepository, IQueueRepository queueRepository)
+        //public IRepository<QueueEntry> QueueRepository => throw new NotImplementedException();
+
+        IQueueRepository IUnitOfWork.QueueRepository => throw new NotImplementedException();
+
+        // public IPatientRepository Patients => throw new NotImplementedException();
+
+
+        public UnitOfWork(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
-            _PatientsRepository = patientRepository;
-            _queueRepository = queueRepository;
+            Patients = new PatientRepository(_dbContext);
+            Queues = new QueueRepository(dbContext) as IRepository<DoctorQueue>;
+            QueuesEntries = new QueueRepository(dbContext) as IRepository<QueueEntry>;
         }
 
         // Start a new transaction

@@ -7,6 +7,7 @@ using HospitalQueueSystem.Application.Services;
 using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Events;
 using HospitalQueueSystem.Domain.Interfaces;
+using HQMS.API.Application.QuerieModel;
 using HQMS.API.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -101,6 +102,33 @@ namespace HospitalQueueSystem.WebAPI.Controllers
                     IsSuccess = false,
                     ErrorMessage = "An error occurred while retrieving patients."
                 });
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetPatientById(string id)
+        {
+            try
+            {
+                var result = await _mediator.Send(new GetPatientByIdQuery(id));
+
+                if (result == null || !result.Any())
+                {
+                    return NotFound($"Patient with ID '{id}' not found.");
+                }
+                var response = new ApiResponse<List<PatientRegisteredEvent>>
+                {
+                    IsSuccess = true,
+                    Data = result
+                };
+
+                return Ok(response);
+                //return Ok(result.First()); // Assuming you return a list with one patient
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error fetching patient with ID: {id}");
+                return StatusCode(500, "An error occurred while processing your request.");
             }
         }
 

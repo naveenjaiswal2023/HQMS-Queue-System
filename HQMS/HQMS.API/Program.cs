@@ -17,6 +17,8 @@ using HospitalQueueSystem.Shared.Utilities;
 using HospitalQueueSystem.WebAPI.Controllers;
 using HospitalQueueSystem.WebAPI.Hubs;
 using HospitalQueueSystem.WebAPI.Middleware;
+using HQMS.API.Domain.Interfaces;
+using HQMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
@@ -156,7 +158,7 @@ builder.Services.AddSingleton(new List<TopicSubscriptionPair>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<PatientController>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-//builder.Services.AddScoped<IPatientRepository, PatientRepository>();
+builder.Services.AddScoped<IRepository<Patient>, PatientRepository>();
 //builder.Services.AddScoped<IQueueRepository, QueueRepository>();
 
 // Event Handlers
@@ -171,6 +173,7 @@ builder.Services.AddHostedService<AzureBusBackgroundService>();
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 
 // Register IHttpContextAccessor (for accessing user info in services)
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
 
@@ -190,17 +193,6 @@ builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 // CORS
-//builder.Services.AddCors(options =>
-//{
-//    options.AddDefaultPolicy(policyBuilder =>
-//    {
-//        policyBuilder
-//            .AllowAnyHeader()
-//            .AllowAnyMethod()
-//            .AllowCredentials()
-//            .SetIsOriginAllowed(_ => true); // Allow all origins (for dev)
-//    });
-//});
 
 builder.Services.AddCors(options =>
 {

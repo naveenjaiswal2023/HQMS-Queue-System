@@ -1,7 +1,9 @@
-﻿using HospitalQueueSystem.Web.Interfaces;
+﻿using HospitalQueueSystem.Domain.Events;
+using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using System.Linq;
 
 namespace HospitalQueueSystem.Web.Services
 {
@@ -33,10 +35,26 @@ namespace HospitalQueueSystem.Web.Services
 
         public async Task<PatientModel?> GetByIdAsync(Guid id)
         {
-            var response = await _apiService.GetAsync<PatientModel>($"Patient/{id}");
-            return response?.Data;
-        }
+            var response = await _apiService.GetAsync<ApiResponse<List<PatientRegisteredEvent>>>($"Patient/{id}");
 
+            if (response?.Succeeded != true || response.Data == null)
+            {
+                return null;
+            }
+
+            //var eventModel = response.Data.FirstOrDefault();
+            //if (eventModel == null) return null;
+
+            return new PatientModel
+            {
+                //PatientId = eventModel.PatientId,
+                //Name = eventModel.Name,
+                //Age = eventModel.Age,
+                //Gender = eventModel.Gender,
+                //Department = eventModel.Department,
+                //RegisteredAt = eventModel.RegisteredAt
+            };
+        }
         public async Task CreateAsync(PatientModel patient)
         {
             var response = await _apiService.PostAsync<object>("Patient/RegisterPatient", patient);

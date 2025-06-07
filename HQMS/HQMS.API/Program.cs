@@ -17,6 +17,8 @@ using HospitalQueueSystem.Shared.Utilities;
 using HospitalQueueSystem.WebAPI.Controllers;
 using HospitalQueueSystem.WebAPI.Hubs;
 using HospitalQueueSystem.WebAPI.Middleware;
+using HQMS.API.Domain.Interfaces;
+using HQMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
@@ -65,7 +67,7 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.AzureBlobStorage(
         connectionString: blobStorageConnectionString,
         storageContainerName: blobContainerName,
-        storageFileName: "log-{yyyyMMdd}.txt",
+        storageFileName: "hqms-api-log-{yyyyMMdd}.txt",
         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
         restrictedToMinimumLevel: LogEventLevel.Information)
     .CreateLogger();
@@ -156,8 +158,8 @@ builder.Services.AddSingleton(new List<TopicSubscriptionPair>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<PatientController>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IPatientRepository, PatientRepository>();
-builder.Services.AddScoped<IQueueRepository, QueueRepository>();
+builder.Services.AddScoped<IRepository<Patient>, PatientRepository>();
+//builder.Services.AddScoped<IQueueRepository, QueueRepository>();
 
 // Event Handlers
 builder.Services.AddScoped<DoctorQueueCreatedEventHandler>();
@@ -171,6 +173,7 @@ builder.Services.AddHostedService<AzureBusBackgroundService>();
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 
 // Register IHttpContextAccessor (for accessing user info in services)
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
 
@@ -190,17 +193,6 @@ builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 // CORS
-//builder.Services.AddCors(options =>
-//{
-//    options.AddDefaultPolicy(policyBuilder =>
-//    {
-//        policyBuilder
-//            .AllowAnyHeader()
-//            .AllowAnyMethod()
-//            .AllowCredentials()
-//            .SetIsOriginAllowed(_ => true); // Allow all origins (for dev)
-//    });
-//});
 
 builder.Services.AddCors(options =>
 {
@@ -208,8 +200,8 @@ builder.Services.AddCors(options =>
     {
         policyBuilder
             .WithOrigins(
-                "https://localhost:7026"      // React dev server
-                //"https://localhost:4200",      // Angular dev server
+                "https://localhost:7026",      // local dev server
+                "https://hqms-ui-bwgnfqd6f6abg0es.eastasia-01.azurewebsites.net"      // Azure dev server
                 //"https://yourdomain.com",      // Production frontend
                 //"https://www.yourdomain.com",  // Production frontend with www
                 //"https://staging.yourdomain.com" // Staging environment

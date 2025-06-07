@@ -16,6 +16,7 @@ namespace HospitalQueueSystem.Application.QueryHandlers
 
         public async Task<List<QueueEntry>> Handle(GetQueueForPODQuery request, CancellationToken cancellationToken)
         {
+
             return await _unitOfWork.QueueRepository.GetQueueByDoctorIdAsync(request.DoctorId);
         }
     }

@@ -1,4 +1,5 @@
 ﻿using HospitalQueueSystem.Domain.Entities;
+using HQMS.API.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -13,6 +14,9 @@ namespace HospitalQueueSystem.Infrastructure.Data
         public DbSet<DoctorQueue> DoctorQueues { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<QueueEntry> QueueEntries { get; set; }
+        public DbSet<State> States { get; set; }
+        public DbSet<City> Cities { get; set; }
+        public DbSet<Department> Departments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

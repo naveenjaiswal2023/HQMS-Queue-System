@@ -1,0 +1,180 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  buildConfiguration: 'Release'
+  azureSubscription: 'hqms-service-connection'
+
+stages:
+# ----------------------------------
+# CI Stage: Build and Publish Artifacts
+# ----------------------------------
+- stage: Build
+  displayName: 'Build and Publish Artifacts'
+  jobs:
+    - job: Build
+      displayName: 'Build Job'
+      pool:
+        vmImage: 'windows-latest'
+
+      steps:
+        - task: UseDotNet@2
+          displayName: 'Use .NET SDK'
+          inputs:
+            packageType: 'sdk'
+            version: '8.x'
+            installationPath: $(Agent.ToolsDirectory)/dotnet
+
+        - task: NuGetToolInstaller@1
+          displayName: 'Install NuGet'
+
+        - task: NuGetCommand@2
+          displayName: 'Restore NuGet Packages'
+          inputs:
+            command: 'restore'
+            restoreSolution: '**/*.sln'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Build Solution'
+          inputs:
+            command: 'build'
+            projects: '**/*.csproj'
+            arguments: '--configuration $(buildConfiguration)'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Publish API'
+          inputs:
+            command: 'publish'
+            publishWebProjects: false
+            projects: '**/HQMS.API/HQMS.API.csproj'
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/api'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Publish MVC'
+          inputs:
+            command: 'publish'
+            publishWebProjects: false
+            projects: '**/HQMS.UI/HQMS.UI.csproj'
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/mvc'
+
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifacts'
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            ArtifactName: 'drop'
+            publishLocation: 'Container'
+
+# ----------------------------------
+# CD Stage: Deploy to Development
+# ----------------------------------
+- stage: Deploy_Dev
+  displayName: 'Deploy to Development'
+  dependsOn: Build
+  variables:
+    environmentName: 'Development'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
+  jobs:
+    - deployment: DeployDev
+      displayName: 'Deploy Dev Environment'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy API to Dev'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to Dev'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
+
+# ----------------------------------
+# CD Stage: Deploy to QA
+# ----------------------------------
+- stage: Deploy_QA
+  displayName: 'Deploy to QA'
+  dependsOn: Deploy_Dev
+  condition: succeeded()
+  variables:
+    environmentName: 'QA'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
+  jobs:
+    - deployment: DeployQA
+      displayName: 'Deploy QA Environment'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy API to QA'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to QA'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
+
+# ----------------------------------
+# CD Stage: Deploy to Production
+# ----------------------------------
+- stage: Deploy_Prod
+  displayName: 'Deploy to Production'
+  dependsOn: Deploy_QA
+  condition: succeeded()
+  variables:
+    environmentName: 'Production'
+    apiAppName: 'hqms-api'
+    mvcAppName: 'hqms-ui'
+  jobs:
+    - deployment: DeployProd
+      displayName: 'Deploy Prod Environment'
+      environment: $(environmentName)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: drop
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy API to Prod'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(apiAppName)
+                  package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
+
+              - task: AzureWebApp@1
+                displayName: 'Deploy MVC to Prod'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  appType: 'webApp'
+                  appName: $(mvcAppName)
+                  package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'

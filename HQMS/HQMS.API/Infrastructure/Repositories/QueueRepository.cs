@@ -1,11 +1,12 @@
 ﻿using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Interfaces;
 using HospitalQueueSystem.Infrastructure.Data;
+using HQMS.API.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace HospitalQueueSystem.Infrastructure.Repositories
 {
-    public class QueueRepository : IQueueRepository
+    public class QueueRepository : IRepository<QueueEntry>
     {
         private readonly ApplicationDbContext _context;
 
@@ -14,7 +15,7 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<QueueEntry> GetByIdAsync(string id)
+        public async Task<QueueEntry?> GetByIdAsync(string id)
         {
             return await _context.QueueEntries.FindAsync(id);
         }
@@ -27,16 +28,31 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public Task AddAsync(QueueEntry entry)
+        public async Task AddAsync(QueueEntry entry)
         {
-            _context.QueueEntries.Add(entry);
-            return Task.CompletedTask;
+            await _context.QueueEntries.AddAsync(entry);
         }
 
-        public Task UpdateAsync(QueueEntry entry)
+        public async Task<int> UpdateAsync(QueueEntry entity)
         {
-            _context.QueueEntries.Update(entry);
-            return Task.CompletedTask;
+            _context.QueueEntries.Update(entity);
+            return await _context.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<QueueEntry>> GetAllAsync()
+        {
+            return await _context.QueueEntries.ToListAsync();
+        }
+
+        public async Task<int> DeleteAsync(string id)
+        {
+            var entity = await _context.QueueEntries.FindAsync(id);
+            if (entity != null)
+            {
+                _context.QueueEntries.Remove(entity);
+                return await _context.SaveChangesAsync();
+            }
+            return 0;
         }
     }
 }

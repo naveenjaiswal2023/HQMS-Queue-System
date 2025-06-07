@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 public abstract class BaseEntity
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    //public string Id { get; set; } = Guid.NewGuid().ToString();
 
     // Domain Events
     private readonly List<IDomainEvent> _domainEvents = new();

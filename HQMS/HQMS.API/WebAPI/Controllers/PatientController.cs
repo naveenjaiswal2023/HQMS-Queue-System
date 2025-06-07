@@ -116,7 +116,7 @@ namespace HospitalQueueSystem.WebAPI.Controllers
                 {
                     return NotFound($"Patient with ID '{id}' not found.");
                 }
-                var response = new ApiResponse<List<PatientRegisteredEvent>>
+                var response = new ApiResponse<List<PatientUpdatedEvent>>
                 {
                     IsSuccess = true,
                     Data = result

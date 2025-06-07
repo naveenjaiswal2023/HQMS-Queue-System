@@ -21,7 +21,6 @@ builder.Services.Configure<ApiSettings>(
 
 builder.Services.Configure<SignalRSettings>(builder.Configuration.GetSection("SignalR"));
 
-
 // Add Azure Key Vault secrets if VaultUrl is configured
 var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
 if (!string.IsNullOrEmpty(keyVaultUrl))
@@ -162,3 +161,4 @@ app.MapControllerRoute(
 app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
+public partial class Program { }

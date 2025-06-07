@@ -1,14 +1,16 @@
 ﻿using HospitalQueueSystem.Application.Queries;
+using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Events;
 using HospitalQueueSystem.Domain.Interfaces;
 using HQMS.API.Application.QuerieModel;
 using MediatR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace HQMS.API.Application.QueryHandlers
 {
-    public class GetPatientByIdQueryHandler : IRequestHandler<GetPatientByIdQuery, List<PatientRegisteredEvent>>
+    public class GetPatientByIdQueryHandler : IRequestHandler<GetPatientByIdQuery, List<PatientUpdatedEvent>>
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IDistributedCache _cache;
@@ -21,19 +23,37 @@ namespace HQMS.API.Application.QueryHandlers
             _logger = logger;
         }
 
-        public async Task<List<PatientRegisteredEvent>> Handle(GetPatientByIdQuery request, CancellationToken cancellationToken)
+        public async Task<List<PatientUpdatedEvent>> Handle(GetPatientByIdQuery request, CancellationToken cancellationToken)
         {
             try
             {
+                string patientIdCacheKey = $"PatientUpdatedEvent_{request.PatientId}";
+                var cachedData = await _cache.GetStringAsync(patientIdCacheKey);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    _logger.LogInformation("Returning patient list from Redis cache.");
+                    return JsonSerializer.Deserialize<List<PatientUpdatedEvent>>(cachedData);
+                }
                 var patient = await _unitOfWork.PatientRepository.GetByIdAsync(request.PatientId);
 
                 if (patient == null)
                 {
                     _logger.LogWarning($"Patient with ID {request.PatientId} not found.");
-                    return new List<PatientRegisteredEvent>();
+                    return new List<PatientUpdatedEvent>();
                 }
 
-                var patientEvent = new PatientRegisteredEvent(
+                var serializedPatients = JsonSerializer.Serialize(patient);
+                await _cache.SetStringAsync(
+                    patientIdCacheKey,
+                    serializedPatients,
+                    new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                    });
+
+                _logger.LogInformation("Patient list cached to Redis successfully.");
+                
+                var patientEvent = new PatientUpdatedEvent(
                     patient.PatientId,
                     patient.Name,
                     patient.Age,
@@ -42,12 +62,12 @@ namespace HQMS.API.Application.QueryHandlers
                     patient.RegisteredAt
                 );
 
-                return new List<PatientRegisteredEvent> { patientEvent };
+                return new List<PatientUpdatedEvent> { patientEvent };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while retrieving patient with ID {request.PatientId}.");
-                return new List<PatientRegisteredEvent>();
+                return new List<PatientUpdatedEvent>();
             }
         }
     }

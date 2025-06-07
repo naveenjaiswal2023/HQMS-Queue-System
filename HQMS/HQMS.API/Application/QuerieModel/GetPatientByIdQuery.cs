@@ -3,7 +3,7 @@ using MediatR;
 
 namespace HQMS.API.Application.QuerieModel
 {
-    public class GetPatientByIdQuery : IRequest<List<PatientRegisteredEvent>>
+    public class GetPatientByIdQuery : IRequest<List<PatientUpdatedEvent>>
     {
         public string PatientId { get; }
 

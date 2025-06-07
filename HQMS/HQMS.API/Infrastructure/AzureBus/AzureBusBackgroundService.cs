@@ -3,6 +3,7 @@ using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Events;
 using HospitalQueueSystem.WebAPI.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,19 +17,22 @@ public class AzureBusBackgroundService : BackgroundService
     private readonly IHubContext<QueueHub> _hubContext;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly List<TopicSubscriptionPair> _topicSubscriptionPairs;
+    private readonly IDistributedCache _cache;
 
     public AzureBusBackgroundService(
         ServiceBusClient client,
         IServiceScopeFactory serviceScopeFactory,
         IHubContext<QueueHub> hubContext,
         List<TopicSubscriptionPair> topicSubscriptionPairs,
-        ILogger<AzureBusBackgroundService> logger)
+        ILogger<AzureBusBackgroundService> logger,
+        IDistributedCache cache)
     {
         _client = client;
         _serviceScopeFactory = serviceScopeFactory;
         _hubContext = hubContext;
         _topicSubscriptionPairs = topicSubscriptionPairs;
         _logger = logger;
+        _cache = cache;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -97,7 +101,27 @@ public class AzureBusBackgroundService : BackgroundService
                 return;
             }
 
-            //await _hubContext.Clients.All.SendAsync(signalRMethod, message);
+            //string CacheKey = $"{typeof(T).Name}_CacheKey";
+            await _cache.RemoveAsync("Patient_CacheKey");
+            string? entityId = message switch
+            {
+                //PatientRegisteredEvent x => x.PatientId,
+                PatientUpdatedEvent x => x.PatientId,
+                //DoctorRegisteredEvent x => x.DoctorId,
+                //PodRegisteredEvent x => x.PodId,
+                _ => null
+            };
+
+            if (!string.IsNullOrEmpty(entityId))
+            {
+                string detailedCacheKey = $"{typeof(T).Name}_{entityId}";
+                await _cache.RemoveAsync(detailedCacheKey);
+                _logger.LogInformation("Invalidated individual cache: {DetailedCacheKey}", detailedCacheKey);
+            }
+
+            _logger.LogInformation("Invalidated Redis cache for patient list due to event: {EventType}", typeof(T).Name);
+
+            // Notify clients via SignalR
             await _hubContext.Clients.All.SendAsync("ReceiveNotification", subject, message);
         }
         catch (JsonException ex)

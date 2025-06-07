@@ -39,9 +39,15 @@ namespace HospitalQueueSystem.Application.Handlers
                     return false;
                 }
 
-                patient.UpdateDetails(request.Name, request.Age, request.Gender, request.Department);
-                var updateCount = await _unitOfWork.PatientRepository.UpdateAsync(patient); // Fix: Ensure the UpdateAsync method in IPatientRepository accepts a Patient entity.
-                //await _unitOfWork.SaveChangesAsync(cancellationToken);
+                // Convert UpdatedAt from string to DateTime
+                if (!DateTime.TryParse(request.UpdatedAt, out var updatedAt))
+                {
+                    _logger.LogWarning("Invalid UpdatedAt value: {UpdatedAt}", request.UpdatedAt);
+                    return false;
+                }
+
+                patient.UpdateDetails(request.Name, request.Age, request.Gender, request.Department, updatedAt);
+                var updateCount = await _unitOfWork.PatientRepository.UpdateAsync(patient);
                 if (updateCount == 0)
                 {
                     _logger.LogWarning("Update failed: No rows affected for Patient ID {PatientId}", request.PatientId);

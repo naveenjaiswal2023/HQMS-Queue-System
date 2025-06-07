@@ -15,40 +15,40 @@ namespace HQMS.Test
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            builder.ConfigureServices(services =>
-            {
-                // Remove existing DbContext if any, and replace with InMemory
-                var descriptor = services.SingleOrDefault(d =>
-                    d.ServiceType == typeof(DbContextOptions<AppDbContext>));
-                if (descriptor != null)
-                    services.Remove(descriptor);
+            //builder.ConfigureServices(services =>
+            //{
+            //    // Remove existing DbContext if any, and replace with InMemory
+            //    var descriptor = services.SingleOrDefault(d =>
+            //        d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+            //    if (descriptor != null)
+            //        services.Remove(descriptor);
 
-                services.AddDbContext<AppDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("TestDb");
-                });
+            //    services.AddDbContext<AppDbContext>(options =>
+            //    {
+            //        options.UseInMemoryDatabase("TestDb");
+            //    });
 
-                // Build the service provider
-                var sp = services.BuildServiceProvider();
+            //    // Build the service provider
+            //    var sp = services.BuildServiceProvider();
 
-                // Seed the user
-                using (var scope = sp.CreateScope())
-                {
-                    var scopedServices = scope.ServiceProvider;
-                    var db = scopedServices.GetRequiredService<AppDbContext>();
+            //    // Seed the user
+            //    using (var scope = sp.CreateScope())
+            //    {
+            //        var scopedServices = scope.ServiceProvider;
+            //        var db = scopedServices.GetRequiredService<AppDbContext>();
 
-                    db.Database.EnsureCreated();
+            //        db.Database.EnsureCreated();
 
-                    db.Users.Add(new User
-                    {
-                        Email = "admin@qms.com",
-                        Password = "Admin@123", // hash if needed
-                        Role = "Admin"
-                    });
+            //        db.Users.Add(new User
+            //        {
+            //            Email = "admin@qms.com",
+            //            Password = "Admin@123", // hash if needed
+            //            Role = "Admin"
+            //        });
 
-                    db.SaveChanges();
-                }
-            });
+            //        db.SaveChanges();
+            //    }
+            //});
         }
     }
 

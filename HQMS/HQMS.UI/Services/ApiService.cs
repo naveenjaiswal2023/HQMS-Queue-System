@@ -44,10 +44,18 @@ namespace HospitalQueueSystem.Web.Services
                 throw new HttpRequestException($"Request failed with status code: {response.StatusCode}.\nContent: {content}");
             }
 
-            return JsonSerializer.Deserialize<ApiResponse<T>>(content, new JsonSerializerOptions
+            try
             {
-                PropertyNameCaseInsensitive = true
-            });
+                var result = JsonSerializer.Deserialize<ApiResponse<T>>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return result;
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"Failed to deserialize response JSON. Content: {content}", ex);
+            }
         }
 
 
@@ -89,9 +97,9 @@ namespace HospitalQueueSystem.Web.Services
                 // If no content returned, assume success with default T value
                 return new ApiResponse<T?>
                 {
-                    Succeeded = true,
+                    IsSuccess = true,
                     Data = default,
-                    Message = "Deleted successfully."
+                    ErrorMessage = "Deleted successfully."
                 };
             }
 

@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -16,10 +18,6 @@
     <PackageReference Include="Serilog.Sinks.AzureBlobStorage" Version="4.0.5" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\HQMS.API\HQMS.API.csproj" />
   </ItemGroup>
 
 </Project>

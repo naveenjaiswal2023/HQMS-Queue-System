@@ -11,13 +11,16 @@ namespace HospitalQueueSystem.Application.CommandModel
         public string Gender { get; }
         public string Department { get; }
 
-        public UpdatePatientCommand(string patientId, string name, int age, string gender, string department)
+        public string UpdatedAt { get; }
+
+        public UpdatePatientCommand(string patientId, string name, int age, string gender, string department,DateTime updatedAt)
         {
             PatientId = patientId;
             Name = name;
             Age = age;
             Gender = gender;
             Department = department;
+            UpdatedAt = updatedAt.ToString("yyyy-MM-dd HH:mm:ss"); // Format the DateTime as needed
         }
 
         // Optional constructor overload for convenience if you're passing an event/model
@@ -28,6 +31,7 @@ namespace HospitalQueueSystem.Application.CommandModel
             Age = patient.Age;
             Gender = patient.Gender;
             Department = patient.Department;
+            UpdatedAt = patient.RegisteredAt.ToString("yyyy-MM-dd HH:mm:ss"); // Format the DateTime as needed
         }
     }
 }

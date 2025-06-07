@@ -24,14 +24,15 @@ namespace HospitalQueueSystem.Domain.Entities
             // Raise the domain event
             AddDomainEvent(new PatientRegisteredEvent(PatientId, Name, Age, Gender, Department, RegisteredAt));
         }
-        public void UpdateDetails(string name, int age, string gender, string department)
+        public void UpdateDetails(string name, int age, string gender, string department, DateTime registeredAt)
         {
             Name = name;
             Age = age;
             Gender = gender;
             Department = department;
+            RegisteredAt = DateTime.UtcNow; // Update the registration time if needed
 
-            AddDomainEvent(new PatientUpdatedEvent(PatientId, name, age, gender, department));
+            AddDomainEvent(new PatientUpdatedEvent(PatientId, name, age, gender, department, RegisteredAt));
         }
 
         public void MarkAsDeleted()

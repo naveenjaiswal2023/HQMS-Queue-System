@@ -52,10 +52,10 @@ namespace HospitalQueueSystem.Web.Controllers
 
         public async Task<IActionResult> Delete(Guid id)
         {
-            //var patient = await _patientService.GetByIdAsync(id);
-            //return View(patient);
-            await _patientService.DeleteAsync(id);
-            return RedirectToAction("Index");
+            var patient = await _patientService.GetByIdAsync(id);
+            return View(patient);
+            //await _patientService.DeleteAsync(id);
+            //return RedirectToAction("Index");
         }
 
         [HttpPost, ActionName("Delete")]

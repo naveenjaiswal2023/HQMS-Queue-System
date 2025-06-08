@@ -1,10 +1,6 @@
-﻿@* @{
-    var userName = Context.Session.GetString("UserName");
-    var userRole = Context.Session.GetString("UserRole");
-    var isLoggedIn = !string.IsNullOrEmpty(userName);
-    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
-} *@
+﻿
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
@@ -102,43 +98,94 @@
     </style>
 </head>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
-
 <script>
     let notificationCount = 0;
 
-    function showNotification(message) {
+        function showNotification(message) {
+        saveNotification(message); // Save before displaying
+
         const toast = document.createElement('div');
         toast.className = 'toast show bg-info text-white position-fixed bottom-0 end-0 m-3';
         toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        toast.style.zIndex = 1056;
+
         toast.innerHTML = `
-            <div class="toast-body">
-                ${message}
-                <button type="button" class="btn-close btn-close-white ms-2 me-1" data-bs-dismiss="toast" aria-label="Close"></button>
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>`;
+
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 5000);
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 500);
+        }, 5000);
+    }
+
+    function saveNotification(message) {
+        const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        notifications.push({
+            message: message,
+            timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+    }
+
+    function loadNotificationsOnPageLoad() {
+        const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        notificationCount = notifications.length;
+
+        notifications.forEach(n => {
+            addNotificationToDropdown(n.message);
+        });
+
+        const countSpan = document.getElementById('notificationCount');
+        if (countSpan) {
+            countSpan.textContent = notificationCount;
+            countSpan.style.display = notificationCount > 0 ? 'inline' : 'none';
+        }
     }
 
     function addNotificationToDropdown(messageText) {
         const notificationList = document.getElementById('notificationList');
+        if (!notificationList) return;
 
-        const dividerBeforeViewAll = notificationList.querySelectorAll('li')[notificationList.querySelectorAll('li').length - 2];
+        const liItems = notificationList.querySelectorAll('li');
+        const dividerBeforeViewAll = liItems.length >= 2 ? liItems[liItems.length - 2] : null;
 
         const newItem = document.createElement('li');
         newItem.innerHTML = `<a class="dropdown-item small" href="#">${messageText}</a>`;
 
-        notificationList.insertBefore(newItem, dividerBeforeViewAll);
+        if (dividerBeforeViewAll) {
+            notificationList.insertBefore(newItem, dividerBeforeViewAll);
+        } else {
+            notificationList.appendChild(newItem);
+        }
     }
 
     function updateNotificationCount() {
         notificationCount++;
         const countSpan = document.getElementById('notificationCount');
-        countSpan.textContent = notificationCount;
-        countSpan.style.display = 'inline';
+        if (countSpan) {
+            countSpan.textContent = notificationCount;
+            countSpan.style.display = 'inline';
+        }
     }
 
+    // Razor config injection (ensure this key is set in appsettings.json)
+    window.signalRHubUrl = '@Configuration["SignalR:HubUrl"]';
+
+    console.log("SignalR Hub URL:", window.signalRHubUrl);
+
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl("https://hqms-api-epd3hxchgqb9brd4.eastasia-01.azurewebsites.net/NotificationHub") // Your actual API hub URL
+        .withUrl(window.signalRHubUrl)
+        .configureLogging(signalR.LogLevel.Debug)
+        .withAutomaticReconnect([0, 2000, 10000, 30000])
         .build();
 
     connection.on("ReceiveNotification", function (eventName, message) {
@@ -166,16 +213,39 @@
     });
 
     connection.start()
-        .then(() => console.log("✅ SignalR connected"))
-        .catch(err => console.error("❌ SignalR connection failed:", err));
+        .then(() => {
+            console.log("✅ SignalR connected successfully");
+            console.log("Connection ID:", connection.connectionId);
+        })
+        .catch(err => {
+            console.error("❌ SignalR connection failed:", err);
+            console.error("Hub URL:", window.signalRHubUrl);
+        });
 
-    // Optional: Reset count on bell click
-    document.getElementById('notificationDropdown')?.addEventListener('click', () => {
-        notificationCount = 0;
-        document.getElementById('notificationCount').textContent = "0";
+           document.addEventListener('DOMContentLoaded', () => {
+        // Load previous notifications from localStorage
+        loadNotificationsOnPageLoad();
+
+        // Reset notification count when dropdown is clicked
+        document.getElementById('notificationDropdown')?.addEventListener('click', () => {
+            // notificationCount = 0;
+            // localStorage.removeItem('notifications');
+
+            const countSpan = document.getElementById('notificationCount');
+            if (countSpan) countSpan.textContent = "0";
+
+            const list = document.getElementById('notificationList');
+            if (list) {
+                list.innerHTML = `
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-center small text-muted" href="#">View All</a></li>
+                `;
+            }
+        });
     });
-</script>
 
+
+</script>
 <body>
     <!-- Header -->
     <header class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
@@ -196,15 +266,6 @@
                         </span>
                     </button>
 
-                    @* <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="notificationDropdown" style="min-width: 250px;">
-                        <li class="dropdown-header fw-bold">Notifications</li>
-                        <li><hr class="dropdown-divider" /></li>
-                        <li><a class="dropdown-item small" href="#">Patient John Doe registered</a></li>
-                        <li><a class="dropdown-item small" href="#">Queue #12 is ready</a></li>
-                        <li><a class="dropdown-item small" href="#">Doctor updated availability</a></li>
-                        <li><hr class="dropdown-divider" /></li>
-                        <li><a class="dropdown-item text-center small text-primary" href="#">View all</a></li>
-                    </ul> *@
                     <ul id="notificationList" class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="notificationDropdown" style="min-width: 250px;">
                         <li class="dropdown-header fw-bold">Notifications</li>
                         <li><hr class="dropdown-divider" /></li>
@@ -307,8 +368,6 @@
             <small>&copy; @DateTime.Now.Year Hospital Admin Dashboard. All rights reserved.</small>
         </div>
     </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Theme toggle
         document.getElementById("toggleTheme").addEventListener("click", () => {
@@ -321,9 +380,7 @@
         document.getElementById("toggleSidebar").addEventListener("click", () => {
             document.getElementById("sidebar-wrapper").classList.toggle("collapsed");
         });
-    </script>
-
-   
-
+    </script> 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

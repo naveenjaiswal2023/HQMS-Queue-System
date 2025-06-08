@@ -28,12 +28,12 @@ namespace HospitalQueueSystem.Application.QueryHandlers
         {
             try
             {
-                var cachedData = await _cache.GetStringAsync(PatientListCacheKey);
-                if (!string.IsNullOrEmpty(cachedData))
-                {
-                    _logger.LogInformation("Returning patient list from Redis cache.");
-                    return JsonSerializer.Deserialize<List<PatientRegisteredEvent>>(cachedData);
-                }
+                //var cachedData = await _cache.GetStringAsync(PatientListCacheKey);
+                //if (!string.IsNullOrEmpty(cachedData))
+                //{
+                //    _logger.LogInformation("Returning patient list from Redis cache.");
+                //    return JsonSerializer.Deserialize<List<PatientRegisteredEvent>>(cachedData);
+                //}
 
                 var patients = await _unitOfWork.Context.Patients
                     .AsNoTracking()
@@ -55,17 +55,17 @@ namespace HospitalQueueSystem.Application.QueryHandlers
                 }
 
                 var serializedPatients = JsonSerializer.Serialize(patients);
-                await _cache.SetStringAsync(
-                    PatientListCacheKey,
-                    serializedPatients,
-                    new DistributedCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-                    });
+                //await _cache.SetStringAsync(
+                //    PatientListCacheKey,
+                //    serializedPatients,
+                //    new DistributedCacheEntryOptions
+                //    {
+                //        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                //    });
 
-                _logger.LogInformation("Patient list cached to Redis successfully.");
-                return patients;
-               // return serializedPatients is not null ? JsonSerializer.Deserialize<List<PatientRegisteredEvent>>(serializedPatients) : new List<PatientRegisteredEvent>();
+                //_logger.LogInformation("Patient list cached to Redis successfully.");
+               // return patients;
+               return serializedPatients is not null ? JsonSerializer.Deserialize<List<PatientRegisteredEvent>>(serializedPatients) : new List<PatientRegisteredEvent>();
             }
             catch (Exception ex)
             {

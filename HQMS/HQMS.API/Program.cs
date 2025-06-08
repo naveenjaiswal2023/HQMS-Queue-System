@@ -15,8 +15,8 @@ using HospitalQueueSystem.Infrastructure.Seed;
 using HospitalQueueSystem.Infrastructure.SignalR;
 using HospitalQueueSystem.Shared.Utilities;
 using HospitalQueueSystem.WebAPI.Controllers;
-using HospitalQueueSystem.WebAPI.Hubs;
 using HospitalQueueSystem.WebAPI.Middleware;
+using HQMS.API.Application.Services;
 using HQMS.API.Domain.Interfaces;
 using HQMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -179,6 +179,7 @@ builder.Services.AddScoped<IUserContextService, UserContextService>();
 
 // SignalR
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 // In-Memory Caching
 builder.Services.AddMemoryCache(); // Register IMemoryCache

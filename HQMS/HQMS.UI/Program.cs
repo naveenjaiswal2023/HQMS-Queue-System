@@ -2,7 +2,6 @@
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using HospitalQueueSystem.Web.Extensions;
-using HospitalQueueSystem.Web.Hubs;
 using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
 using HospitalQueueSystem.Web.Services;
@@ -62,8 +61,8 @@ try
                 storageFileName: "hqms-ui-log-{yyyyMMdd}.txt",
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
                 restrictedToMinimumLevel: LogEventLevel.Information)
-            .ReadFrom.Configuration(context.Configuration)     // ✅ Required for appsettings.json logging config
-            .ReadFrom.Services(services);                      // ✅ Required to register DiagnosticContext
+            .ReadFrom.Configuration(context.Configuration)     //  Required for appsettings.json logging config
+            .ReadFrom.Services(services);                      //  Required to register DiagnosticContext
     });
 
     Console.WriteLine("✅ Serilog configured.");
@@ -158,7 +157,7 @@ app.MapControllerRoute(
     pattern: "{controller=Auth}/{action=Login}/{id?}");
 
 // SignalR hub
-app.MapHub<NotificationHub>("/notificationHub");
+//app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
 public partial class Program { }

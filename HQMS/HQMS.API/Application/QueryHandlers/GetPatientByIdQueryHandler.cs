@@ -27,13 +27,13 @@ namespace HQMS.API.Application.QueryHandlers
         {
             try
             {
-                string patientIdCacheKey = $"PatientUpdatedEvent_{request.PatientId}";
-                var cachedData = await _cache.GetStringAsync(patientIdCacheKey);
-                if (!string.IsNullOrEmpty(cachedData))
-                {
-                    _logger.LogInformation("Returning patient list from Redis cache.");
-                    return JsonSerializer.Deserialize<List<PatientUpdatedEvent>>(cachedData);
-                }
+                //string patientIdCacheKey = $"PatientUpdatedEvent_{request.PatientId}";
+                //var cachedData = await _cache.GetStringAsync(patientIdCacheKey);
+                //if (!string.IsNullOrEmpty(cachedData))
+                //{
+                //    _logger.LogInformation("Returning patient list from Redis cache.");
+                //    return JsonSerializer.Deserialize<List<PatientUpdatedEvent>>(cachedData);
+                //}
                 var patient = await _unitOfWork.PatientRepository.GetByIdAsync(request.PatientId);
 
                 if (patient == null)
@@ -42,16 +42,16 @@ namespace HQMS.API.Application.QueryHandlers
                     return new List<PatientUpdatedEvent>();
                 }
 
-                var serializedPatients = JsonSerializer.Serialize(patient);
-                await _cache.SetStringAsync(
-                    patientIdCacheKey,
-                    serializedPatients,
-                    new DistributedCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-                    });
+                //var serializedPatients = JsonSerializer.Serialize(patient);
+                //await _cache.SetStringAsync(
+                //    patientIdCacheKey,
+                //    serializedPatients,
+                //    new DistributedCacheEntryOptions
+                //    {
+                //        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                //    });
 
-                _logger.LogInformation("Patient list cached to Redis successfully.");
+                //_logger.LogInformation("Patient list cached to Redis successfully.");
                 
                 var patientEvent = new PatientUpdatedEvent(
                     patient.PatientId,

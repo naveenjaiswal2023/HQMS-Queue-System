@@ -4,7 +4,6 @@ using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Events;
 using HospitalQueueSystem.Domain.Interfaces;
 using HospitalQueueSystem.Infrastructure.Data;
-using HospitalQueueSystem.WebAPI.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using System;
@@ -16,7 +15,6 @@ namespace HospitalQueueSystem.Application.Handlers
     public class DoctorQueueCreatedEventHandler : INotificationHandler<DoctorQueueCreatedEvent>
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IHubContext<QueueHub> _hubContext;
         private readonly ServiceBusClient _serviceBusClient;
         private readonly ILogger<PatientRegisterEventHandler> _logger;
         private const string TopicName = "patient-topic";

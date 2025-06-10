@@ -1,22 +1,110 @@
 ﻿@model PatientModel
-<h2>@ViewContext.RouteData.Values["action"] Patient</h2>
 
-<form asp-action="@ViewContext.RouteData.Values["action"]">
-    <div class="form-group">
-        <label>Name</label>
-        <input asp-for="Name" class="form-control" />
+<div class="container-lg mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-user-edit me-2"></i>
+                @ViewContext.RouteData.Values["action"] Patient
+            </h4>
+        </div>
+        <div class="card-body">
+            <form asp-action="@ViewContext.RouteData.Values["action"]"
+                  method="post"
+                  class="needs-validation"
+                  novalidate>
+                
+                <div class="row g-3">
+                    <!-- Column 1 -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Name" class="form-label">Name</label>
+                        <input asp-for="Name" class="form-control" required />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                        <label asp-for="Age" class="form-label">Age</label>
+                        <input asp-for="Age" class="form-control" type="number" min="0" required />
+                        <span asp-validation-for="Age" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                        <label asp-for="Gender" class="form-label">Gender</label>
+                        <select asp-for="Gender" class="form-select" required>
+                            <option selected value="">Choose...</option>
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Department" class="form-label">Department</label>
+                        <input asp-for="Department" class="form-control" required />
+                        <span asp-validation-for="Department" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="PhoneNumber" class="form-label">Phone</label>
+                        <input asp-for="PhoneNumber" class="form-control" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <input asp-for="Email" class="form-control" type="email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Address" class="form-label">Address</label>
+                        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <label asp-for="BloodGroup" class="form-label">Blood Group</label>
+                        <input asp-for="BloodGroup" class="form-control" />
+                        <span asp-validation-for="BloodGroup" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <label asp-for="RegisteredAt" class="form-label">Registered At</label>
+                        <input asp-for="RegisteredAt"
+                               type="datetime-local"
+                               class="form-control" />
+                        <span asp-validation-for="RegisteredAt" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <label asp-for="HospitalId" class="form-label">Hospital ID</label>
+                        <input asp-for="HospitalId" class="form-control" />
+                        <span asp-validation-for="HospitalId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <label asp-for="DoctorId" class="form-label">Doctor ID</label>
+                        <input asp-for="DoctorId" class="form-control" />
+                        <span asp-validation-for="DoctorId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 text-end pt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Save
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="form-group">
-        <label>Age</label>
-        <input asp-for="Age" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label>Gender</label>
-        <input asp-for="Gender" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label>Department</label>
-        <input asp-for="Department" class="form-control" />
-    </div>
-    <button type="submit" class="btn btn-primary mt-2">Save</button>
-</form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

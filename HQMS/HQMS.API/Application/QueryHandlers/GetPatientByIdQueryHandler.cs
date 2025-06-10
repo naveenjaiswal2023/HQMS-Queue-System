@@ -59,7 +59,12 @@ namespace HQMS.API.Application.QueryHandlers
                     patient.Age,
                     patient.Gender,
                     patient.Department,
-                    patient.RegisteredAt
+                    patient.PhoneNumber,
+                    patient.Email,
+                    patient.Address,
+                    patient.BloodGroup,
+                    patient.HospitalId,
+                    patient.PrimaryDoctorId
                 );
 
                 return new List<PatientUpdatedEvent> { patientEvent };

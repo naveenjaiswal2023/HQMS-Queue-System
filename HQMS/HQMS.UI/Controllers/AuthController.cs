@@ -59,9 +59,8 @@ namespace HospitalQueueSystem.Web.Controllers
                 var principal = new ClaimsPrincipal(identity);
 
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-                TempData["SuccessMessage"] = "Login successful!";
+                //TempData["SuccessMessage"] = "Login successful!";
                 return RedirectToAction("Index", "Dashboard");
-
             }
 
             ModelState.AddModelError("", errorMessage ?? "Login failed.");

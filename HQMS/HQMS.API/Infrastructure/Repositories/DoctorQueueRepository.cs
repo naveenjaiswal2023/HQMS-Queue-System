@@ -19,7 +19,7 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             await _context.DoctorQueues.AddAsync(doctorQueue);
         }
 
-        public async Task<DoctorQueue?> GetByIdAsync(string id)
+        public async Task<DoctorQueue?> GetByIdAsync(Guid id)
         {
             return await _context.DoctorQueues.FindAsync(id);
         }
@@ -35,7 +35,7 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             return await _context.SaveChangesAsync(); // returns affected rows
         }
 
-        public async Task<int> DeleteAsync(string id)
+        public async Task<int> DeleteAsync(Guid id)
         {
             var entity = await _context.DoctorQueues.FindAsync(id);
             if (entity != null)
@@ -47,10 +47,10 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
         }
 
         // Optional: Custom method specific to DoctorQueue
-        public async Task<DoctorQueue?> GetByDoctorIdAsync(int doctorId)
+        public async Task<DoctorQueue?> GetByDoctorIdAsync(Guid doctorId) // Changed parameter type to Guid
         {
             return await _context.DoctorQueues
-                .FirstOrDefaultAsync(q => q.DoctorId == doctorId); // assuming DoctorId is int
+                .FirstOrDefaultAsync(q => q.DoctorId == doctorId); // No change needed here as DoctorId is already Guid
         }
     }
 }

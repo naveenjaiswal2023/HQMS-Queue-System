@@ -31,7 +31,7 @@ namespace HospitalQueueSystem.Application.Handlers
             try
             {
                 var patient = await _unitOfWork.Context.Patients
-                    .FirstOrDefaultAsync(p => p.PatientId == request.PatientId, cancellationToken);
+                    .FirstOrDefaultAsync(p => p.PatientId == Guid.Parse(request.PatientId), cancellationToken);
 
                 if (patient == null)
                 {
@@ -40,13 +40,13 @@ namespace HospitalQueueSystem.Application.Handlers
                 }
 
                 // Convert UpdatedAt from string to DateTime
-                if (!DateTime.TryParse(request.UpdatedAt, out var updatedAt))
-                {
-                    _logger.LogWarning("Invalid UpdatedAt value: {UpdatedAt}", request.UpdatedAt);
-                    return false;
-                }
-
-                patient.UpdateDetails(request.Name, request.Age, request.Gender, request.Department, updatedAt);
+                //if (!DateTime.TryParse(request.UpdatedAt, out var updatedAt))
+                //{
+                //    _logger.LogWarning("Invalid UpdatedAt value: {UpdatedAt}", request.UpdatedAt);
+                //    return false;
+                //}
+                // string phoneNumber, string email, string address, string bloodGroup
+                patient.UpdateDetails(request.Name, request.Age, request.Gender, request.Department,request.PhoneNumber,request.Email,request.Address,request.BloodGroup,request.HospitalId,request.DoctorId,request.UpdatedAt);
                 var updateCount = await _unitOfWork.PatientRepository.UpdateAsync(patient);
                 if (updateCount == 0)
                 {

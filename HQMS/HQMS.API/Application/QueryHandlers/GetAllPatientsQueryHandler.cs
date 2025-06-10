@@ -37,14 +37,20 @@ namespace HospitalQueueSystem.Application.QueryHandlers
 
                 var patients = await _unitOfWork.Context.Patients
                     .AsNoTracking()
-                    .OrderByDescending(p => p.RegisteredAt)
+                    .OrderByDescending(p => p.CreatedAt)
                     .Select(p => new PatientRegisteredEvent(
                         p.PatientId,
                         p.Name,
                         p.Age,
                         p.Gender,
                         p.Department,
-                        p.RegisteredAt
+                        p.PhoneNumber,
+                        p.Email,
+                        p.Address,
+                        p.BloodGroup,
+                        p.HospitalId,
+                        p.PrimaryDoctorId
+                        
                     ))
                     .ToListAsync(cancellationToken);
 

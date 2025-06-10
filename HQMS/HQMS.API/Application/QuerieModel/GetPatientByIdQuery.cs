@@ -5,9 +5,9 @@ namespace HQMS.API.Application.QuerieModel
 {
     public class GetPatientByIdQuery : IRequest<List<PatientUpdatedEvent>>
     {
-        public string PatientId { get; }
+        public Guid PatientId { get; }
 
-        public GetPatientByIdQuery(string patientId)
+        public GetPatientByIdQuery(Guid patientId)
         {
             PatientId = patientId;
         }

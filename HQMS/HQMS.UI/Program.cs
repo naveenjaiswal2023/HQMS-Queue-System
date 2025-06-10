@@ -20,24 +20,37 @@ builder.Services.Configure<ApiSettings>(
 
 builder.Services.Configure<SignalRSettings>(builder.Configuration.GetSection("SignalR"));
 
-// Add Azure Key Vault secrets if VaultUrl is configured
-var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
-if (!string.IsNullOrEmpty(keyVaultUrl))
+var environment = builder.Environment.EnvironmentName;
+var isDevelopment = builder.Environment.IsDevelopment();
+
+// 1. Load base + environment-specific config
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
+if (!builder.Environment.IsDevelopment())
 {
-    try
+    // Add Azure Key Vault secrets if VaultUrl is configured
+    var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
+    if (!string.IsNullOrEmpty(keyVaultUrl))
     {
-        var credential = new DefaultAzureCredential();
-        builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
-        Console.WriteLine("✅ Azure Key Vault loaded.");
+        try
+        {
+            var credential = new DefaultAzureCredential();
+            builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+            Console.WriteLine("✅ Azure Key Vault loaded.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to load Azure Key Vault: {ex.Message}");
+        }
     }
-    catch (Exception ex)
+    else
     {
-        Console.WriteLine($"❌ Failed to load Azure Key Vault: {ex.Message}");
+        Console.WriteLine("ℹ️ Azure Key Vault URL not configured.");
     }
-}
-else
-{
-    Console.WriteLine("ℹ️ Azure Key Vault URL not configured.");
 }
 
 // Final configuration object (after Key Vault is loaded)

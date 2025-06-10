@@ -2,6 +2,7 @@
 using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Events;
 using HospitalQueueSystem.Infrastructure.SignalR;
+using HQMS.API.Domain.Events;
 using HQMS.API.Domain.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
@@ -78,6 +79,15 @@ public class AzureBusBackgroundService : BackgroundService
                     break;
                 case nameof(PatientDeletedEvent):
                     await HandleMessage<PatientDeletedEvent>(body, args, "PatientDeletedEvent", subject);
+                    break;
+                case nameof(RoleCreatedEvent):
+                    await HandleMessage<RoleCreatedEvent>(body, args, "PatientRegisteredEvent", subject);
+                    break;
+                case nameof(RoleUpdatedEvent):
+                    await HandleMessage<RoleUpdatedEvent>(body, args, "PatientUpdatedEvent", subject);
+                    break;
+                case nameof(RoleDeletedEvent):
+                    await HandleMessage<RoleDeletedEvent>(body, args, "PatientDeletedEvent", subject);
                     break;
                 default:
                     _logger.LogWarning("Unknown message subject: {Subject}", subject);

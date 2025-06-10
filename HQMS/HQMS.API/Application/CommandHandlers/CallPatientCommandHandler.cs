@@ -32,7 +32,7 @@ namespace HospitalQueueSystem.Application.CommandHandlers
             try
             {
                 // Convert QueueEntryId to string before passing to GetByIdAsync
-                var entry = await _unitOfWork.QueueRepository.GetByIdAsync(request.QueueEntryId.ToString());
+                var entry = await _unitOfWork.QueueRepository.GetByIdAsync(request.QueueEntryId);
                 if (entry == null)
                 {
                     _logger.LogWarning("Queue entry not found for ID: {QueueEntryId}", request.QueueEntryId);

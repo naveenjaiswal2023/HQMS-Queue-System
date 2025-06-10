@@ -48,6 +48,7 @@
         if (countSpan) {
             countSpan.textContent = notificationCount;
             countSpan.style.display = notificationCount > 0 ? 'inline' : 'none';
+            localStorage.removeItem('notifications');
         }
     }
 

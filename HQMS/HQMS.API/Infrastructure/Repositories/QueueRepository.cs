@@ -15,7 +15,7 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<QueueEntry?> GetByIdAsync(string id)
+        public async Task<QueueEntry?> GetByIdAsync(Guid id)
         {
             return await _context.QueueEntries.FindAsync(id);
         }
@@ -44,7 +44,7 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             return await _context.QueueEntries.ToListAsync();
         }
 
-        public async Task<int> DeleteAsync(string id)
+        public async Task<int> DeleteAsync(Guid id)
         {
             var entity = await _context.QueueEntries.FindAsync(id);
             if (entity != null)

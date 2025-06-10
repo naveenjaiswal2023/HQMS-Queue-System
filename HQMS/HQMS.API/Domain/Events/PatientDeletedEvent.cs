@@ -5,9 +5,9 @@ namespace HospitalQueueSystem.Domain.Events
 {
     public class PatientDeletedEvent : IDomainEvent, INotification
     {
-        public string PatientId { get; }
+        public Guid PatientId { get; }
 
-        public PatientDeletedEvent(string patientId)
+        public PatientDeletedEvent(Guid patientId)
         {
             PatientId = patientId;
         }

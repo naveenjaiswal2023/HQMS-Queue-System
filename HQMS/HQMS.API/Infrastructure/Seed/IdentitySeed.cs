@@ -1,6 +1,7 @@
 ﻿namespace HospitalQueueSystem.Infrastructure.Seed
 {
     using HospitalQueueSystem.Infrastructure.Data;
+    using HQMS.API.Domain.Entities;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.Extensions.DependencyInjection;
 
@@ -8,15 +9,18 @@
     {
         public static async Task SeedRolesAndAdminAsync(IServiceProvider serviceProvider)
         {
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
             string[] roles = { "Admin", "Doctor", "POD", "Patient" };
 
-            foreach (var role in roles)
+            foreach (var roleName in roles)
             {
-                if (!await roleManager.RoleExistsAsync(role))
-                    await roleManager.CreateAsync(new IdentityRole(role));
+                if (!await roleManager.RoleExistsAsync(roleName))
+                {
+                    var newRole = new ApplicationRole(roleName); // ✅ Use ApplicationRole instead of IdentityRole
+                    await roleManager.CreateAsync(newRole);
+                }
             }
 
             // Seed Admin User
@@ -31,7 +35,7 @@
                     EmailConfirmed = true
                 };
 
-                var result = await userManager.CreateAsync(adminUser, "Admin@123"); // secure in real apps
+                var result = await userManager.CreateAsync(adminUser, "Admin@123");
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(adminUser, "Admin");
@@ -39,5 +43,4 @@
             }
         }
     }
-
 }

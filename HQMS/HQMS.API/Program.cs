@@ -16,14 +16,19 @@ using HospitalQueueSystem.Infrastructure.SignalR;
 using HospitalQueueSystem.Shared.Utilities;
 using HospitalQueueSystem.WebAPI.Controllers;
 using HospitalQueueSystem.WebAPI.Middleware;
+using HQMS.API.Application.DTO;
 using HQMS.API.Application.Services;
+using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.API.WebAPI.Controllers;
 using HQMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Polly;
 using Serilog;
 using Serilog.Events;
 using System.Text;
@@ -39,20 +44,33 @@ builder.Configuration
 builder.Services.Configure<MaintenanceModeOptionsDto>(
     builder.Configuration.GetSection("MaintenanceMode"));
 
+builder.Services.Configure<ExternalApiOptions>(
+    builder.Configuration.GetSection("ExternalApi"));
 
-// Add Azure Key Vault secrets if VaultUrl is configured
-var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
-if (!string.IsNullOrEmpty(keyVaultUrl))
+var environment = builder.Environment.EnvironmentName;
+var isDevelopment = builder.Environment.IsDevelopment();
+
+// 1. Load base + environment-specific config
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
+if (!builder.Environment.IsDevelopment())
 {
-    var credential = new DefaultAzureCredential();
-
-    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+    // 2. Load Key Vault in non-dev environments
+    var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
+    if (!string.IsNullOrEmpty(keyVaultUrl))
+    {
+        var credential = new DefaultAzureCredential();
+        builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+    }
 }
 
-// Final configuration object (after Key Vault is loaded)
+// 3. Use final configuration
 var configuration = builder.Configuration;
-
-// Extract secrets
+// 4. Get secrets from Key Vault or appsettings.Development.json
 var azureServiceBusConnectionString = configuration["AzureServiceBusConnectionString"];
 var blobStorageConnectionString = configuration["BlobStorageConnectionString"];
 var blobContainerName = configuration["Logging:BlobStorage:ContainerName"];
@@ -91,7 +109,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     });
 });
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
@@ -157,6 +175,7 @@ builder.Services.AddSingleton(new List<TopicSubscriptionPair>
 // Register other services
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<PatientController>();
+builder.Services.AddScoped<RolesController>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRepository<Patient>, PatientRepository>();
 //builder.Services.AddScoped<IQueueRepository, QueueRepository>();
@@ -171,6 +190,8 @@ builder.Services.AddMediatR(cfg =>
 // Azure Service Bus Publisher & Subscriber
 builder.Services.AddHostedService<AzureBusBackgroundService>();
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
+
+builder.Services.AddHostedService<HospitalDataSyncService>();
 
 // Register IHttpContextAccessor (for accessing user info in services)
 builder.Services.AddHttpContextAccessor();
@@ -192,6 +213,26 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+//builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>(client =>
+//{
+//    client.BaseAddress = new Uri("https://externalapi.myfortis.com/");
+//    client.DefaultRequestHeaders.Add("Accept", "application/json");
+//})
+//.AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(3, _ => TimeSpan.FromSeconds(2)));
+
+
+builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>((sp, client) =>
+{
+    var config = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
+    client.BaseAddress = new Uri(config.BaseUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.AddTransientHttpErrorPolicy(policyBuilder =>
+    policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
+.AddTransientHttpErrorPolicy(policyBuilder =>
+    policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+
 
 // CORS
 

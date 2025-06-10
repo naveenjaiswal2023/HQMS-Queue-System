@@ -29,7 +29,7 @@ namespace HospitalQueueSystem.Application.Handlers
             try
             {
                 var patient = await _unitOfWork.Context.Patients
-                    .FirstOrDefaultAsync(p => p.PatientId == request.PatientId, cancellationToken);
+                    .FirstOrDefaultAsync(p => p.PatientId == Guid.Parse(request.PatientId), cancellationToken);
 
                 if (patient == null)
                 {

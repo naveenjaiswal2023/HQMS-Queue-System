@@ -50,7 +50,7 @@ namespace HospitalQueueSystem.WebAPI.Controllers
                     });
                 }
 
-                var command = new RegisterPatientCommand(model.Name, model.Age, model.Gender, model.Department);
+                var command = new RegisterPatientCommand(model.Name, model.Age, model.Gender, model.Department, model.PhoneNumber,model.Email,model.Address,model.BloodGroup,model.HospitalId,model.DoctorId);
                 var result = await _mediator.Send(command);
 
                 if (result)
@@ -106,7 +106,7 @@ namespace HospitalQueueSystem.WebAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetPatientById(string id)
+        public async Task<IActionResult> GetPatientById(Guid id)
         {
             try
             {
@@ -138,7 +138,7 @@ namespace HospitalQueueSystem.WebAPI.Controllers
         {
             try
             {
-                if (id != model.PatientId)
+                if (!Guid.TryParse(id, out var parsedId) || parsedId != model.PatientId)
                     return BadRequest(new ApiResponse<string> { IsSuccess = false, ErrorMessage = "Patient ID mismatch." });
 
                 var command = new UpdatePatientCommand(model);
@@ -152,7 +152,7 @@ namespace HospitalQueueSystem.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating patient with ID {PatientId}", id);
-                return StatusCode(500, new ApiResponse<string> {IsSuccess = false, ErrorMessage = "An error occurred while updating the patient." });
+                return StatusCode(500, new ApiResponse<string> { IsSuccess = false, ErrorMessage = "An error occurred while updating the patient." });
             }
         }
 

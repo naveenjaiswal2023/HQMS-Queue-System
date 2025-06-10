@@ -4,6 +4,6 @@ namespace HospitalQueueSystem.Application.CommandModel
 {
     public class CallPatientCommand : IRequest<bool>
     {
-        public int QueueEntryId { get; set; }
+        public Guid QueueEntryId { get; set; }
     }
 }

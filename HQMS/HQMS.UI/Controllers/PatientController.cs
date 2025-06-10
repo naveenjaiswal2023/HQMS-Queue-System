@@ -27,7 +27,18 @@ namespace HospitalQueueSystem.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(PatientModel model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid)
+            {
+                foreach (var key in ModelState.Keys)
+                {
+                    var state = ModelState[key];
+                    foreach (var error in state.Errors)
+                    {
+                        Console.WriteLine($"Key: {key}, Error: {error.ErrorMessage}");
+                    }
+                }
+                return View(model);
+            }
 
             model.PatientId = Guid.NewGuid();
             model.RegisteredAt = DateTime.UtcNow;

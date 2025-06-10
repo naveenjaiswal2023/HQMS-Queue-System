@@ -11,7 +11,7 @@ namespace HospitalQueueSystem.Infrastructure.Data.Configurations
             builder.HasKey(p => p.PatientId);
             builder.Property(p => p.Name).IsRequired();
             builder.Property(p => p.Department).IsRequired();
-            builder.Property(p => p.RegisteredAt).IsRequired();
+            builder.Property(p => p.CreatedAt).IsRequired();
         }
     }
 }

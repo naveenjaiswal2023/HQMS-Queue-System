@@ -25,21 +25,9 @@ namespace HospitalQueueSystem.Web.Controllers
         public IActionResult Create() => View();
 
         [HttpPost]
+        [ValidateAntiForgeryToken] // ✅ Protect POST
         public async Task<IActionResult> Create(PatientModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                foreach (var key in ModelState.Keys)
-                {
-                    var state = ModelState[key];
-                    foreach (var error in state.Errors)
-                    {
-                        Console.WriteLine($"Key: {key}, Error: {error.ErrorMessage}");
-                    }
-                }
-                return View(model);
-            }
-
             model.PatientId = Guid.NewGuid();
             model.RegisteredAt = DateTime.UtcNow;
             await _patientService.CreateAsync(model);
@@ -49,14 +37,15 @@ namespace HospitalQueueSystem.Web.Controllers
         public async Task<IActionResult> Edit(Guid id)
         {
             var patient = await _patientService.GetByIdAsync(id);
+            if (patient == null) return NotFound();
             return View(patient);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken] // ✅ Protect POST
         public async Task<IActionResult> Edit(Guid id, PatientModel model)
         {
             if (!ModelState.IsValid) return View(model);
-
             await _patientService.UpdateAsync(id, model);
             return RedirectToAction("Index");
         }
@@ -64,12 +53,12 @@ namespace HospitalQueueSystem.Web.Controllers
         public async Task<IActionResult> Delete(Guid id)
         {
             var patient = await _patientService.GetByIdAsync(id);
+            if (patient == null) return NotFound();
             return View(patient);
-            //await _patientService.DeleteAsync(id);
-            //return RedirectToAction("Index");
         }
 
         [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken] // ✅ Protect POST
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
             await _patientService.DeleteAsync(id);

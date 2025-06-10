@@ -1,4 +1,4 @@
-/* Reset some default spacing */
+﻿/* Reset some default spacing */
 body, html {
     margin: 0;
     padding: 0;
@@ -97,10 +97,13 @@ body {
 /* Responsive adjustments */
 @media (max-width: 768px) {
     #sidebar-wrapper {
-        position: absolute;
-        z-index: 1000;
-        height: 100%;
+        position: fixed;
+        top: 0;
         left: -250px;
+        height: 100%;
+        z-index: 1050;
+        background-color: var(--sidebar-bg);
+        transition: left 0.3s ease;
     }
 
         #sidebar-wrapper.active {
@@ -110,8 +113,5 @@ body {
     #page-content-wrapper {
         margin-left: 0 !important;
     }
-
-    #sidebar-wrapper.collapsed {
-        left: -70px;
-    }
 }
+

@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using System.Text.Json;
-using System.Text;
+﻿using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Net.Http;
-using HospitalQueueSystem.Web.Interfaces;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 
 namespace HospitalQueueSystem.Web.Controllers
 {
@@ -23,12 +24,14 @@ namespace HospitalQueueSystem.Web.Controllers
             ViewBag.HubUrl = _configuration["SignalR:HubUrl"];
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult Login()
         {
             return View();
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Login(LoginModel model)
         {

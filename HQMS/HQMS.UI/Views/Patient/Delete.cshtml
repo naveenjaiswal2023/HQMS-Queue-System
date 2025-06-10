@@ -3,6 +3,7 @@
 <p>Are you sure you want to delete patient: <strong>@Model.Name</strong>?</p>
 
 <form asp-action="Delete">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="PatientId" />
     <button type="submit" class="btn btn-danger">Yes, Delete</button>
     <a asp-action="Index" class="btn btn-secondary">Cancel</a>

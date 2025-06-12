@@ -2,6 +2,7 @@
 using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Interfaces;
 using HospitalQueueSystem.Infrastructure.Data;
+using HQMS.API.Domain.Entities;
 using Jose;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -16,26 +17,38 @@ namespace HospitalQueueSystem.Application.Services
     {
         private readonly JwtDto _jwt;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
 
-        public TokenService(IOptions<JwtDto> jwtOptions, UserManager<ApplicationUser> userManager)
+        public TokenService(
+        IOptions<JwtDto> jwtOptions,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager)
         {
             _jwt = jwtOptions.Value;
             _userManager = userManager;
+            _roleManager = roleManager;
         }
+
 
         public async Task<TokenDto> GenerateToken(ApplicationUser user)
         {
             var userRoles = await _userManager.GetRolesAsync(user);
+            var roleName = userRoles.FirstOrDefault() ?? string.Empty;
+
+            // Get the RoleId for the first role
+            var role = await _roleManager.FindByNameAsync(roleName);
+            var roleId = role?.Id ?? string.Empty;
 
             var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id),
-        new Claim(ClaimTypes.Email, user.Email ?? string.Empty)
-    };
-
-            foreach (var role in userRoles)
             {
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+                new Claim("RoleId", roleId) // Optional: Add roleId as a custom claim
+            };
+
+            foreach (var uRole in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, uRole));
             }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key));
@@ -62,6 +75,7 @@ namespace HospitalQueueSystem.Application.Services
                 Expiration = expires,
                 UserId = user.Id,
                 Role = userRoles.FirstOrDefault() ?? string.Empty,
+                RoleId = roleId // Add this to your DTO
                 //RefreshToken = refreshToken
             };
         }

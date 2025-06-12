@@ -46,6 +46,8 @@ namespace HospitalQueueSystem.Web.Controllers
                 HttpContext.Session.SetString("UserEmail", model.Email);
                 HttpContext.Session.SetString("UserName", tokenData.UserId ?? model.Email);
                 HttpContext.Session.SetString("UserRole", tokenData.Role ?? "");
+                HttpContext.Session.SetString("RoleId", tokenData.RoleId ?? "");
+
 
                 var claims = new List<Claim>
                 {
@@ -57,6 +59,8 @@ namespace HospitalQueueSystem.Web.Controllers
                     claims.Add(new Claim(ClaimTypes.NameIdentifier, tokenData.UserId));
                 if (!string.IsNullOrEmpty(tokenData.Role))
                     claims.Add(new Claim(ClaimTypes.Role, tokenData.Role));
+                if (!string.IsNullOrEmpty(tokenData.RoleId))
+                    claims.Add(new Claim("RoleId", tokenData.RoleId)); // Custom claim
 
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);

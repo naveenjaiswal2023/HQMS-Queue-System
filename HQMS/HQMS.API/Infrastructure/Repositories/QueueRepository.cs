@@ -54,5 +54,10 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             }
             return 0;
         }
+
+        public Task RemoveRange(IEnumerable<QueueEntry> entities)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -60,5 +60,10 @@ namespace HQMS.Infrastructure.Repositories
             return await _context.Database.ExecuteSqlRawAsync(
                 "EXEC sp_DeletePatient @PatientId", param);
         }
+
+        public Task RemoveRange(IEnumerable<Patient> entities)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

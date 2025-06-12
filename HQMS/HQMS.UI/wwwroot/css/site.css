@@ -1,56 +1,98 @@
 ﻿/* Reset some default spacing */
 body, html {
-    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    /*margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;*/
 }
 
 /* Sidebar toggle animation */
+/* Sidebar Enhancements */
 #sidebar-wrapper {
-    transition: all 0.3s ease;
-    background-color: #f8f9fa;
+    background-color: var(--sidebar-bg);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
 }
 
-    #sidebar-wrapper.collapsed {
-        width: 70px;
-        overflow-x: hidden;
-    }
+.sidebar-heading {
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
 
-        #sidebar-wrapper.collapsed .list-group-item {
-            text-align: center;
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
-        }
-
-            #sidebar-wrapper.collapsed .list-group-item i {
-                margin-right: 0;
-            }
-
-            #sidebar-wrapper.collapsed .list-group-item span {
-                display: none;
-            }
-
-/* Sidebar links */
 .list-group-item {
     border: none;
     padding: 0.75rem 1.25rem;
-    color: #333;
-    transition: background-color 0.2s ease-in-out;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-    .list-group-item i {
-        margin-right: 0.75rem;
-    }
+.list-group-item:hover {
+    background-color: #e9ecef;
+    color: #000;
+}
 
-    .list-group-item:hover {
-        background-color: #e9ecef;
-        color: #000;
+/* Child menu toggle */
+.submenu {
+    display: none;
+    padding-left: 1.5rem;
+    background-color: #f1f1f1;
+}
+
+.submenu .list-group-item {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+}
+
+.submenu.show {
+    display: block;
+}
+
+.toggle-icon {
+    margin-left: auto;
+    transition: transform 0.3s;
+}
+
+.toggle-icon.rotate {
+    transform: rotate(90deg);
+}
+
+/* Responsive improvement */
+@media (max-width: 768px) {
+    #sidebar-wrapper {
+        max-width: 100%;
+        position: fixed;
+        z-index: 1050;
     }
+}
+
+
+#page-content-wrapper {
+    width: 100%;
+}
+
+footer {
+    background: #f8f9fa;
+    padding: 1rem;
+    text-align: center;
+}
+
+.sidebar-heading {
+    padding: 1rem;
+    font-size: 1.25rem;
+    text-align: center;
+    background-color: #0069d9;
+    color: white;
+}
 
 .active-link {
     background-color: #dce0e3;
-    font-weight: 600;
-    border-left: 4px solid #007bff;
+    font-weight: bold;
 }
 
 /* Page content */

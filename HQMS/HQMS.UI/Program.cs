@@ -6,8 +6,10 @@ using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
 using HospitalQueueSystem.Web.Services;
 using HQMS.UI.Handlers;
+using HQMS.UI.Interfaces;
 using HQMS.UI.Middlewares;
 using HQMS.UI.Models;
+using HQMS.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -102,6 +104,7 @@ builder.Services.AddTransient<AuthorizationHandler>();
 
 builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 
 

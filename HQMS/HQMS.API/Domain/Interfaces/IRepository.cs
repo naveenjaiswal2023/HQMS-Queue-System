@@ -7,5 +7,8 @@
         Task AddAsync(T entity);
         Task<int> UpdateAsync(T entity); // Changed from void to Task<int>
         Task<int> DeleteAsync(Guid id); // Changed from void to Task<int>
+
+        // ✅ Add this method
+        Task RemoveRange(IEnumerable<T> entities);
     }
 }

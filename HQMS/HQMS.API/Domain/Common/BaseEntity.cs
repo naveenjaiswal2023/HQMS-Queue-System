@@ -3,13 +3,12 @@ using System.ComponentModel.DataAnnotations;
 
 public abstract class BaseEntity
 {
-    //public string Id { get; set; } = Guid.NewGuid().ToString();
-
     // Domain Events
     private readonly List<IDomainEvent> _domainEvents = new();
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     protected void AddDomainEvent(IDomainEvent eventItem) => _domainEvents.Add(eventItem);
+    public void RaiseDomainEvent(IDomainEvent domainEvent) => AddDomainEvent(domainEvent);
     public void ClearDomainEvents() => _domainEvents.Clear();
 
     // Audit
@@ -18,10 +17,23 @@ public abstract class BaseEntity
     public string? ModifiedBy { get; set; }
     public DateTime? ModifiedAt { get; set; }
 
+    public void SetModified(string modifiedBy)
+    {
+        ModifiedBy = modifiedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
+
     // Soft Delete
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
     public string? DeletedBy { get; set; }
+
+    public void MarkAsDeleted(string deletedBy)
+    {
+        IsDeleted = true;
+        DeletedBy = deletedBy;
+        DeletedAt = DateTime.UtcNow;
+    }
 
     // Concurrency
     [Timestamp]

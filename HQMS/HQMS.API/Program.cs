@@ -20,6 +20,7 @@ using HQMS.API.Application.DTO;
 using HQMS.API.Application.Services;
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.API.Infrastructure.Repositories;
 using HQMS.API.WebAPI.Controllers;
 using HQMS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -178,6 +179,8 @@ builder.Services.AddScoped<PatientController>();
 builder.Services.AddScoped<RolesController>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRepository<Patient>, PatientRepository>();
+builder.Services.AddScoped<IRepository<Menu>, MenuRepository>();
+builder.Services.AddScoped<IRoleMenuRepository, RoleMenuRepository >();
 //builder.Services.AddScoped<IQueueRepository, QueueRepository>();
 
 // Event Handlers
@@ -214,14 +217,6 @@ builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection(
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
-//builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>(client =>
-//{
-//    client.BaseAddress = new Uri("https://externalapi.myfortis.com/");
-//    client.DefaultRequestHeaders.Add("Accept", "application/json");
-//})
-//.AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(3, _ => TimeSpan.FromSeconds(2)));
-
-
 builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>((sp, client) =>
 {
     var config = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
@@ -232,7 +227,6 @@ builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService
     policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
 .AddTransientHttpErrorPolicy(policyBuilder =>
     policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
-
 
 // CORS
 

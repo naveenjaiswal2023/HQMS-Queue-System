@@ -10,20 +10,21 @@ namespace HQMS.API.Application.EventHandlers
     {
         private readonly ServiceBusClient _serviceBusClient;
         private readonly ILogger<RoleDeletedEventHandler> _logger;
-        private const string TopicName = "patient-topic";
-        
+        private readonly string _topicName;
 
-        public RoleDeletedEventHandler(ServiceBusClient serviceBusClient, ILogger<RoleDeletedEventHandler> logger)
+
+        public RoleDeletedEventHandler(ServiceBusClient serviceBusClient, ILogger<RoleDeletedEventHandler> logger,IConfiguration configuration)
         {
             _serviceBusClient = serviceBusClient;
             _logger = logger;
+            _topicName = configuration["AzureServiceBus:QmsNotificationTopic"];
         }
 
         public async Task Handle(RoleDeletedEvent notification, CancellationToken cancellationToken)
         {
             try
             {
-                var sender = _serviceBusClient.CreateSender(TopicName);
+                var sender = _serviceBusClient.CreateSender(_topicName);
 
                 var messageBody = JsonSerializer.Serialize(notification);
                 var message = new ServiceBusMessage(messageBody)

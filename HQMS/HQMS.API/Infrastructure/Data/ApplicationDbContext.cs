@@ -20,6 +20,9 @@ namespace HospitalQueueSystem.Infrastructure.Data
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<DoctorSlot> DoctorSlots { get; set; }
         public DbSet<Hospital> Hospitals { get; set; }
+        public DbSet<Menu> Menus { get; set; }
+        public DbSet<RoleMenu> RoleMenus { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,8 +42,14 @@ namespace HospitalQueueSystem.Infrastructure.Data
             }
 
             // ---------------------------
-            // Appointment foreign keys
+            // foreign keys
             // ---------------------------
+
+            modelBuilder.Entity<RoleMenu>()
+            .HasOne(rm => rm.Role)
+            .WithMany(r => r.RoleMenus)
+            .HasForeignKey(rm => rm.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.Patient)

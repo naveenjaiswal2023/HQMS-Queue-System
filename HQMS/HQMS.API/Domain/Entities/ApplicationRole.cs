@@ -1,14 +1,17 @@
 ﻿using HospitalQueueSystem.Domain.Common;
 using HQMS.API.Domain.Events;
 using Microsoft.AspNetCore.Identity;
+using System.Collections.Generic;
 
 namespace HQMS.API.Domain.Entities
 {
     public class ApplicationRole : IdentityRole
     {
         private readonly List<IDomainEvent> _domainEvents = new();
-
         public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+        // ✅ Add this for EF Core navigation
+        public virtual ICollection<RoleMenu> RoleMenus { get; set; } = new List<RoleMenu>();
 
         public ApplicationRole() : base() { }
 
@@ -18,17 +21,6 @@ namespace HQMS.API.Domain.Entities
             AddDomainEvent(new RoleCreatedEvent(Id, roleName));
         }
 
-        public void AddDomainEvent(IDomainEvent domainEvent)
-        {
-            _domainEvents.Add(domainEvent);
-        }
-
-        public void ClearDomainEvents()
-        {
-            _domainEvents.Clear();
-        }
-
-        // ✅ Factory method (optional - just calls constructor now)
         public static ApplicationRole Create(string roleName)
         {
             return new ApplicationRole(roleName);
@@ -47,5 +39,9 @@ namespace HQMS.API.Domain.Entities
         {
             AddDomainEvent(new RoleDeletedEvent(Id, Name));
         }
+
+        public void AddDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
+
+        public void ClearDomainEvents() => _domainEvents.Clear();
     }
 }

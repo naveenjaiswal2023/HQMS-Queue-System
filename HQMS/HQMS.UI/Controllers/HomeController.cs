@@ -1,4 +1,5 @@
 using HospitalQueueSystem.Web.Models;
+using HQMS.UI.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -6,27 +7,18 @@ namespace HospitalQueueSystem.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly IMenuService _menuService;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(IMenuService menuService)
         {
-            _logger = logger;
+            _menuService = menuService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var menus = await _menuService.GetMenuHierarchyAsync();
+            ViewBag.Menus = menus;
             return View();
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }

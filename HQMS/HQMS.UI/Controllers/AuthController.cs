@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using System.Text.Json;
-using System.Text;
+﻿using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Net.Http;
-using HospitalQueueSystem.Web.Interfaces;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 
 namespace HospitalQueueSystem.Web.Controllers
 {
@@ -23,12 +24,14 @@ namespace HospitalQueueSystem.Web.Controllers
             ViewBag.HubUrl = _configuration["SignalR:HubUrl"];
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult Login()
         {
             return View();
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Login(LoginModel model)
         {
@@ -43,6 +46,8 @@ namespace HospitalQueueSystem.Web.Controllers
                 HttpContext.Session.SetString("UserEmail", model.Email);
                 HttpContext.Session.SetString("UserName", tokenData.UserId ?? model.Email);
                 HttpContext.Session.SetString("UserRole", tokenData.Role ?? "");
+                HttpContext.Session.SetString("RoleId", tokenData.RoleId ?? "");
+
 
                 var claims = new List<Claim>
                 {
@@ -54,6 +59,8 @@ namespace HospitalQueueSystem.Web.Controllers
                     claims.Add(new Claim(ClaimTypes.NameIdentifier, tokenData.UserId));
                 if (!string.IsNullOrEmpty(tokenData.Role))
                     claims.Add(new Claim(ClaimTypes.Role, tokenData.Role));
+                if (!string.IsNullOrEmpty(tokenData.RoleId))
+                    claims.Add(new Claim("RoleId", tokenData.RoleId)); // Custom claim
 
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);

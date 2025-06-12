@@ -1,0 +1,10 @@
+﻿#sidebar-wrapper .list-group-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.active-link {
+    background-color: #dce0e3;
+    font-weight: bold;
+}

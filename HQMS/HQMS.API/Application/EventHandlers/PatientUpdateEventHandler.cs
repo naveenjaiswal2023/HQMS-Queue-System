@@ -14,19 +14,20 @@ namespace HospitalQueueSystem.Application.EventHandlers
     {
         private readonly ServiceBusClient _serviceBusClient;
         private readonly ILogger<PatientUpdateEventHandler> _logger;
-        private const string TopicName = "patient-topic";
+        private readonly string _topicName;
 
-        public PatientUpdateEventHandler(ServiceBusClient serviceBusClient, ILogger<PatientUpdateEventHandler> logger)
+        public PatientUpdateEventHandler(ServiceBusClient serviceBusClient, ILogger<PatientUpdateEventHandler> logger,IConfiguration configuration)
         {
             _serviceBusClient = serviceBusClient;
             _logger = logger;
+            _topicName = configuration["AzureServiceBus:QmsNotificationTopic"];
         }
 
         public async Task Handle(PatientUpdatedEvent notification, CancellationToken cancellationToken)
         {
             try
             {
-                var sender = _serviceBusClient.CreateSender(TopicName);
+                var sender = _serviceBusClient.CreateSender(_topicName);
 
                 var messageBody = JsonSerializer.Serialize(notification);
                 var message = new ServiceBusMessage(messageBody)

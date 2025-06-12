@@ -6,9 +6,14 @@ using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
 using HospitalQueueSystem.Web.Services;
 using HQMS.UI.Handlers;
+using HQMS.UI.Interfaces;
 using HQMS.UI.Middlewares;
 using HQMS.UI.Models;
+using HQMS.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Serilog;
 using Serilog.Events;
 
@@ -99,14 +104,29 @@ builder.Services.AddTransient<AuthorizationHandler>();
 
 builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 
 
-builder.Services.AddControllersWithViews()
-    .AddViewOptions(options =>
-    {
-        options.HtmlHelperOptions.ClientValidationEnabled = true;
-    });
+builder.Services.AddControllersWithViews(options =>
+{
+    // Automatically apply anti-forgery token validation to all POST actions
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+})
+.AddViewOptions(options =>
+{
+    options.HtmlHelperOptions.ClientValidationEnabled = true;
+});
+
+
+builder.Services.AddControllersWithViews(options =>
+{
+    var policy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new AuthorizeFilter(policy));
+});
+
 
 builder.Services.AddSignalR();
 
@@ -152,6 +172,20 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Frame-Options", "DENY");
+    await next();
+});
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+    await next();
+});
+
+
 app.UseRouting();
 
 // Remove or configure this properly
@@ -168,9 +202,6 @@ app.UseSerilogRequestLogging();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auth}/{action=Login}/{id?}");
-
-// SignalR hub
-//app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
 public partial class Program { }

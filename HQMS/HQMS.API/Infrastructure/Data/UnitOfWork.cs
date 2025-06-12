@@ -1,7 +1,9 @@
 ﻿using HospitalQueueSystem.Domain.Entities;
 using HospitalQueueSystem.Domain.Interfaces;
 using HospitalQueueSystem.Infrastructure.Repositories;
+using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.API.Infrastructure.Repositories;
 using HQMS.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -13,10 +15,16 @@ namespace HospitalQueueSystem.Infrastructure.Data
     {
         private readonly ApplicationDbContext _dbContext;
         private IDbContextTransaction _transaction;
+        private IRepository<Menu> _menuRepository;
+        private IRoleMenuRepository _roleMenuRepository;
+
         private IRepository<Patient> _patientRepository;
+        
         private IQueueRepository _queueRepository;
         private IRepository<DoctorQueue> _doctorQueueRepository;
         public IRepository<Patient> Patients { get; }
+        public IRepository<Menu> Menus { get; }
+        public IRepository<RoleMenu> RoleMenus { get; }
         public IRepository<DoctorQueue> Queues { get; }
         public IRepository<QueueEntry> QueuesEntries { get; }
         
@@ -30,6 +38,24 @@ namespace HospitalQueueSystem.Infrastructure.Data
                 if (_patientRepository == null)
                     _patientRepository = new PatientRepository(_dbContext);
                 return _patientRepository;
+            }
+        }
+        public IRepository<Menu> MenuRepository
+        {
+            get
+            {
+                if (_menuRepository == null)
+                    _menuRepository = new MenuRepository(_dbContext);
+                return _menuRepository;
+            }
+        }
+        public IRoleMenuRepository RoleMenuRepository
+        {
+            get
+            {
+                if (_roleMenuRepository == null)
+                    _roleMenuRepository = new RoleMenuRepository(_dbContext);
+                return _roleMenuRepository;
             }
         }
 

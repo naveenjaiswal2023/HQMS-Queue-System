@@ -52,5 +52,10 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             return await _context.DoctorQueues
                 .FirstOrDefaultAsync(q => q.DoctorId == doctorId); // No change needed here as DoctorId is already Guid
         }
+
+        public Task RemoveRange(IEnumerable<DoctorQueue> entities)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

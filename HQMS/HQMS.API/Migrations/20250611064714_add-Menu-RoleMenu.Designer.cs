@@ -4,6 +4,7 @@ using HospitalQueueSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HQMS.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250611064714_add-Menu-RoleMenu")]
+    partial class addMenuRoleMenu
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -465,6 +468,46 @@ namespace HQMS.API.Migrations
                     b.ToTable("Menus");
                 });
 
+            modelBuilder.Entity("HQMS.API.Domain.Entities.Role", b =>
+                {
+                    b.Property<Guid>("RoleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("RoleId");
+
+                    b.ToTable("Role");
+                });
+
             modelBuilder.Entity("HQMS.API.Domain.Entities.RoleMenu", b =>
                 {
                     b.Property<Guid>("RoleMenuID")
@@ -495,8 +538,8 @@ namespace HQMS.API.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -954,10 +997,11 @@ namespace HQMS.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("HQMS.API.Domain.Entities.ApplicationRole", "Role")
+                    b.HasOne("HQMS.API.Domain.Entities.Role", "Role")
                         .WithMany("RoleMenus")
                         .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Menu");
 
@@ -1037,11 +1081,6 @@ namespace HQMS.API.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("HQMS.API.Domain.Entities.ApplicationRole", b =>
-                {
-                    b.Navigation("RoleMenus");
-                });
-
             modelBuilder.Entity("HQMS.API.Domain.Entities.Appointment", b =>
                 {
                     b.Navigation("Appointments");
@@ -1066,6 +1105,11 @@ namespace HQMS.API.Migrations
                 });
 
             modelBuilder.Entity("HQMS.API.Domain.Entities.Menu", b =>
+                {
+                    b.Navigation("RoleMenus");
+                });
+
+            modelBuilder.Entity("HQMS.API.Domain.Entities.Role", b =>
                 {
                     b.Navigation("RoleMenus");
                 });

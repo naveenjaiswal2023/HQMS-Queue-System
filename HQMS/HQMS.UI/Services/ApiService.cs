@@ -50,6 +50,7 @@ namespace HospitalQueueSystem.Web.Services
                 {
                     PropertyNameCaseInsensitive = true
                 });
+
                 return result;
             }
             catch (JsonException ex)

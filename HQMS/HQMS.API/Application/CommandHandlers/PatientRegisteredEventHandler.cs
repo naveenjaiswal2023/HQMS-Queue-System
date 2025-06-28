@@ -1,6 +1,6 @@
-﻿using HospitalQueueSystem.Domain.Events;
+﻿using HQMS.Domain.Events;
 
-namespace HospitalQueueSystem.Application.Handlers
+namespace HQMS.Application.Handlers
 {
     public class PatientRegisteredEventHandler
     {

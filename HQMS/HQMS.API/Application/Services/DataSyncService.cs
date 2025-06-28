@@ -1,6 +1,7 @@
-﻿using HospitalQueueSystem.Infrastructure.Data;
+﻿
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
 
@@ -48,19 +49,33 @@ namespace HQMS.API.Application.Services
 
             foreach (var dept in departments)
             {
-                var entity = await dbContext.Departments.FindAsync(new object[] { dept.Id }, cancellationToken);
-                if (entity == null)
-                {
-                    dbContext.Departments.Add(new Department { Id = dept.Id, Name = dept.Name });
-                }
-                else
-                {
-                    entity.Name = dept.Name;
-                }
+                var entity = await dbContext.Departments
+                    .FirstOrDefaultAsync(d => d.DepartmentId == dept.Id, cancellationToken);
+
+                //if (entity == null)
+                //{
+                //    var newDepartment = new Department
+                //    {
+                //        DepartmentId = dept.Id,
+                //        DepartmentName = dept.Name
+                //    };
+
+                //    dbContext.Departments.Add(newDepartment);
+                //}
+                //else
+                //{
+                //    // Update only if value has changed
+                //    if (entity.DepartmentName != dept.Name)
+                //    {
+                //        entity.DepartmentName = dept.Name;
+                //        dbContext.Departments.Update(entity); // Optional: EF tracks automatically
+                //    }
+                //}
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+
 
         private async Task SyncDoctorSlotsAsync(IServiceProvider scopedProvider, CancellationToken cancellationToken)
         {
@@ -115,20 +130,18 @@ namespace HQMS.API.Application.Services
 
                         if (existing == null)
                         {
-                            dbContext.Appointments.Add(new Appointment
-                            {
-                                Id = appt.Id,
-                                PatientId = appt.PatientId,
-                                DoctorId = appt.DoctorId,
-                                HospitalId = appt.HospitalId,
-                                AppointmentTime = appt.AppointmentTime
-                            });
+                            //dbContext.Appointments.Add(new Appointment(
+                            //    appt.Id, // Pass the required 'id' parameter
+                            //    appt.PatientId,
+                            //    appt.DoctorId,
+                            //    appt.AppointmentTime
+                            //));
                         }
                         else
                         {
-                            existing.DoctorId = appt.DoctorId;
-                            existing.HospitalId = appt.HospitalId;
-                            existing.AppointmentTime = appt.AppointmentTime;
+                            // Use a method to update the properties since the setters are private
+                            existing.SetModified("System");
+                            existing.UpdateAppointmentDetails(appt.DoctorId, appt.HospitalId, appt.AppointmentTime);
                         }
                     }
 

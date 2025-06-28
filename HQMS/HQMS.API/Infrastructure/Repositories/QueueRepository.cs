@@ -1,12 +1,16 @@
-﻿using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Data;
+﻿
+using HQMS.API.Application.DTO;
+using HQMS.API.Domain.Entities;
+using HQMS.API.Domain.Enum;
 using HQMS.API.Domain.Interfaces;
+using HQMS.API.Shared.Helpers;
+using HQMS.Domain.Entities;
+using HQMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace HospitalQueueSystem.Infrastructure.Repositories
+namespace HQMS.Infrastructure.Repositories
 {
-    public class QueueRepository : IRepository<QueueEntry>
+    public class QueueRepository : IQueueRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -15,47 +19,141 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<QueueEntry?> GetByIdAsync(Guid id)
+        public async Task AddAsync(QueueItem item)
         {
-            return await _context.QueueEntries.FindAsync(id);
+            await _context.QueueItems.AddAsync(item);
         }
 
-        public async Task<List<QueueEntry>> GetQueueByDoctorIdAsync(int doctorId)
+        public async Task DeleteAsync(QueueItem entity)
         {
-            return await _context.QueueEntries
-                .Where(q => q.DoctorId == doctorId.ToString() && q.Status == "Called")
-                .OrderBy(q => q.CreatedAt)
+            _context.QueueItems.Remove(entity);
+            await Task.CompletedTask; // if your UoW handles SaveChangesAsync
+        }
+
+        public async Task<IEnumerable<QueueItem>> GetAllAsync()
+        {
+            return await _context.QueueItems.ToListAsync();
+        }
+
+        public async Task<QueueItem> GetByIdAsync(Guid id)
+        {
+            return await _context.QueueItems.FirstOrDefaultAsync(q => q.Id == id);
+        }
+
+        public async Task<int> GetNextPositionAsync(Guid doctorId)
+        {
+            var maxPosition = await _context.QueueItems
+                .Where(q => q.DoctorId == doctorId && q.Status != QueueStatus.Completed)
+                .MaxAsync(q => (int?)q.Position) ?? 0;
+
+            return maxPosition + 1;
+        }
+
+        public async Task<List<QueueItem>> GetWaitingPatientsByDepartmentAsync(Guid departmentId)
+        {
+            return await _context.QueueItems
+                .Where(q => q.DepartmentId == departmentId && q.Status == 0)
                 .ToListAsync();
         }
-
-        public async Task AddAsync(QueueEntry entry)
+        public async Task<List<QueueItem>> GetQueueItemsForDoctorByDateAsync(Guid doctorId, DateTime date)
         {
-            await _context.QueueEntries.AddAsync(entry);
+            var startOfDay = date.Date;
+            var endOfDay = startOfDay.AddDays(1);
+
+            return await _context.QueueItems
+                .Where(q => q.DoctorId == doctorId && q.JoinedAt >= startOfDay && q.JoinedAt < endOfDay)
+                .OrderBy(q => q.Position)
+                .ToListAsync();
+        }
+        public async Task<QueueItem?> GetByAppointmentIdAsync(Guid appointmentId)
+        {
+            return await _context.QueueItems
+                .FirstOrDefaultAsync(q => q.AppointmentId == appointmentId);
+        }
+        public async Task UpdateAsync(QueueItem entity)
+        {
+            _context.QueueItems.Update(entity);
+            await Task.CompletedTask;
         }
 
-        public async Task<int> UpdateAsync(QueueEntry entity)
+        public async Task<List<QueueDashboardItemDto>> GetDashboardDataAsync(Guid? hospitalId, Guid? departmentId, IEnumerable<Guid> doctorIds)
         {
-            _context.QueueEntries.Update(entity);
-            return await _context.SaveChangesAsync();
-        }
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
 
-        public async Task<IEnumerable<QueueEntry>> GetAllAsync()
-        {
-            return await _context.QueueEntries.ToListAsync();
-        }
+            var query = from queue in _context.QueueItems
+                        join appointment in _context.Appointments on queue.AppointmentId equals appointment.Id
+                        join patient in _context.Patients on appointment.PatientId equals patient.PatientId into patientJoin
+                        from patient in patientJoin.DefaultIfEmpty()
+                        join doctor in _context.Doctors on appointment.DoctorId equals doctor.Id into doctorJoin
+                        from doctor in doctorJoin.DefaultIfEmpty()
+                        join department in _context.Departments on queue.DepartmentId equals department.DepartmentId into deptJoin
+                        from department in deptJoin.DefaultIfEmpty()
+                        where !queue.IsDeleted &&
+                              appointment.AppointmentTime >= today &&
+                              appointment.AppointmentTime < tomorrow
+                        select new
+                        {
+                            queue,
+                            appointment,
+                            patient,
+                            doctor,
+                            department
+                        };
 
-        public async Task<int> DeleteAsync(Guid id)
-        {
-            var entity = await _context.QueueEntries.FindAsync(id);
-            if (entity != null)
+            if (hospitalId.HasValue)
             {
-                _context.QueueEntries.Remove(entity);
-                return await _context.SaveChangesAsync();
+                query = query.Where(x => x.appointment.HospitalId == hospitalId.Value);
             }
-            return 0;
+
+            if (departmentId.HasValue)
+            {
+                query = query.Where(x => x.queue.DepartmentId == departmentId.Value);
+            }
+
+            if (doctorIds != null && doctorIds.Any())
+            {
+                query = query.Where(x => x.doctor != null && doctorIds.Contains(x.doctor.Id));
+            }
+
+            var result = await query
+                .OrderBy(x => x.appointment.AppointmentTime)
+                .Select(x => new QueueDashboardItemDto
+                {
+                    QueueNumber = x.queue.QueueNumber,
+                    PatientName = x.patient != null ? x.patient.Name : "Unknown",
+                    DoctorName = x.doctor != null ? x.doctor.FirstName + " " + x.doctor.LastName : "Unknown",
+                    AppointmentTime = x.appointment.AppointmentTime,
+                    Department = x.department != null ? x.department.DepartmentName : "Unknown",
+                    Status = EnumHelper.GetName<QueueStatus>(x.queue.Status)
+                })
+                .ToListAsync();
+
+            return result;
         }
 
-        public Task RemoveRange(IEnumerable<QueueEntry> entities)
+
+        public Task<List<QueueEntry>> GetQueueByDoctorIdAsync(int doctorId)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<int> IRepository<QueueItem>.UpdateAsync(QueueItem entity)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> DeleteAsync(Guid id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task RemoveRange(IEnumerable<QueueItem> entities)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<List<QueueEntry>> IQueueRepository.GetQueueByDoctorIdAsync(int doctorId)
         {
             throw new NotImplementedException();
         }

@@ -1,5 +1,4 @@
-﻿using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
+﻿
 using HQMS.API.Application.QuerieModel;
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Events;

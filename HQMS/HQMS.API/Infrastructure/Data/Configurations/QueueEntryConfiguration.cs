@@ -1,8 +1,8 @@
-﻿using HospitalQueueSystem.Domain.Entities;
+﻿using HQMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
 
-namespace HospitalQueueSystem.Infrastructure.Data.Configurations
+namespace HQMS.Infrastructure.Data.Configurations
 {
     public class QueueEntryConfiguration : IEntityTypeConfiguration<QueueEntry>
     {

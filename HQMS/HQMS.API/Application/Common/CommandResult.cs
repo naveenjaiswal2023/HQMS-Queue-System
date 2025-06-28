@@ -1,6 +1,6 @@
-﻿using HospitalQueueSystem.Domain.Interfaces;
+﻿using HQMS.Domain.Interfaces;
 
-namespace HospitalQueueSystem.Application.Common
+namespace HQMS.Application.Common
 {
     public class CommandResult : ICommandResult
     {

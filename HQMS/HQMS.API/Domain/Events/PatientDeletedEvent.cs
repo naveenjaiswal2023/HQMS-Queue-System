@@ -1,7 +1,7 @@
-﻿using HospitalQueueSystem.Domain.Common;
+﻿using HQMS.Domain.Common;
 using MediatR;
 
-namespace HospitalQueueSystem.Domain.Events
+namespace HQMS.Domain.Events
 {
     public class PatientDeletedEvent : IDomainEvent, INotification
     {

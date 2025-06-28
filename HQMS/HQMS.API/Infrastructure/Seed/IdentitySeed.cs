@@ -1,10 +1,10 @@
-﻿namespace HospitalQueueSystem.Infrastructure.Seed
+﻿
+using HQMS.API.Domain.Entities;
+using HQMS.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+namespace HQMS.Infrastructure.Seed
 {
-    using HospitalQueueSystem.Infrastructure.Data;
-    using HQMS.API.Domain.Entities;
-    using Microsoft.AspNetCore.Identity;
-    using Microsoft.Extensions.DependencyInjection;
-
     public static class IdentitySeed
     {
         public static async Task SeedRolesAndAdminAsync(IServiceProvider serviceProvider)

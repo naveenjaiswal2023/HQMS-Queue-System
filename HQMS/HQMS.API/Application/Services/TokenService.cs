@@ -1,8 +1,8 @@
-﻿using HospitalQueueSystem.Application.DTO;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Data;
+﻿
 using HQMS.API.Domain.Entities;
+using HQMS.Application.DTO;
+using HQMS.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
 using Jose;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -11,7 +11,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace HospitalQueueSystem.Application.Services
+namespace HQMS.Application.Services
 {
     public class TokenService : ITokenService
     {

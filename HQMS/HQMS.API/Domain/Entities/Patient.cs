@@ -1,8 +1,8 @@
-﻿using HospitalQueueSystem.Domain.Common;
-using HospitalQueueSystem.Domain.Events;
+﻿using HQMS.Domain.Events;
 using HQMS.API.Domain.Entities;
+using HQMS.Domain.Entities.Common;
 
-namespace HospitalQueueSystem.Domain.Entities
+namespace HQMS.API.Domain.Entities
 {
     public class Patient : BaseEntity
     {
@@ -10,20 +10,24 @@ namespace HospitalQueueSystem.Domain.Entities
         public string Name { get; private set; }
         public int Age { get; private set; }
         public string Gender { get; private set; }
-        public string Department { get; private set; }
+
+        public Guid DepartmentId { get; private set; }               // ✅ FK
+        public Department Department { get; private set; }           // ✅ Navigation
+
         public string PhoneNumber { get; private set; }
         public string Email { get; private set; }
         public string Address { get; private set; }
         public string BloodGroup { get; private set; }
 
-        // Foreign keys
         public Guid HospitalId { get; private set; }
         public Hospital Hospital { get; private set; }
 
         public Guid PrimaryDoctorId { get; private set; }
-        public Guid PrimaryDoctor { get; private set; }
+        public Doctor PrimaryDoctor { get; private set; }
+
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
-        public Patient(string name, int age, string gender, string department,
+
+        public Patient(string name, int age, string gender, Guid departmentId,
                        string phoneNumber, string email, string address, string bloodGroup,
                        Guid hospitalId, Guid primaryDoctorId)
         {
@@ -31,7 +35,7 @@ namespace HospitalQueueSystem.Domain.Entities
             Name = name;
             Age = age;
             Gender = gender;
-            Department = department;
+            DepartmentId = departmentId;                     // ✅ assign FK
             PhoneNumber = phoneNumber;
             Email = email;
             Address = address;
@@ -39,26 +43,41 @@ namespace HospitalQueueSystem.Domain.Entities
             HospitalId = hospitalId;
             PrimaryDoctorId = primaryDoctorId;
 
-            AddDomainEvent(new PatientRegisteredEvent(PatientId, Name, Age, Gender, Department, PhoneNumber, Email, Address, BloodGroup, HospitalId, PrimaryDoctorId));
+            AddDomainEvent(new PatientRegisteredEvent(
+                PatientId,
+                Name,
+                Age,
+                Gender,
+                Department?.DepartmentName ?? "Unknown",   // ✅ now string
+                PhoneNumber,
+                Email,
+                Address,
+                BloodGroup,
+                Hospital?.Name ?? "Unknown",     // ✅ now string
+                PrimaryDoctor?.FullName ?? "Unknown" // ✅ now string
+            ));
+
         }
 
-        public void UpdateDetails(string name, int age, string gender, string department,
-                                  string phoneNumber, string email, string address, string bloodGroup,Guid hospitalId,Guid doctorId,DateTime updatedAt)
+        public void UpdateDetails(string name, int age, string gender, Guid departmentId,
+                                  string phoneNumber, string email, string address, string bloodGroup,
+                                  Guid hospitalId, Guid doctorId, DateTime updatedAt)
         {
             Name = name;
             Age = age;
             Gender = gender;
-            Department = department;
+            DepartmentId = departmentId;                     // ✅ assign FK
             PhoneNumber = phoneNumber;
             Email = email;
             Address = address;
             BloodGroup = bloodGroup;
             HospitalId = hospitalId;
             PrimaryDoctorId = doctorId;
-            ModifiedAt = DateTime.UtcNow; // Update the time of update
+            ModifiedAt = updatedAt;
+            CreatedAt = DateTime.UtcNow;
+            CreatedBy = "System";
 
-
-            AddDomainEvent(new PatientUpdatedEvent(PatientId, Name, Age, Gender, Department, PhoneNumber,Email,Address,BloodGroup,HospitalId, PrimaryDoctorId));
+            AddDomainEvent(new PatientUpdatedEvent(PatientId, Name, Age, Gender, departmentId, PhoneNumber, Email, Address, BloodGroup, HospitalId, PrimaryDoctorId));
         }
 
         public void MarkAsDeleted()

@@ -1,13 +1,11 @@
-﻿using HospitalQueueSystem.Domain.Entities;
+﻿
+using HQMS.API.Domain.Interfaces;
+using HQMS.Domain.Entities;
 
-namespace HospitalQueueSystem.Domain.Interfaces
+namespace HQMS.Domain.Interfaces
 {
-    public interface IDoctorQueueRepository
+    public interface IDoctorQueueRepository : IRepository<DoctorQueue>
     {
-        Task AddAsync(DoctorQueue doctorQueue);
-        Task<DoctorQueue?> GetByDoctorIdAsync(int doctorId);
-        Task<List<DoctorQueue>> GetAllAsync();
-        Task UpdateAsync(DoctorQueue doctorQueue);
-        Task DeleteAsync(int id);
+        Task<DoctorQueue?> GetByDoctorIdAsync(Guid doctorId);
     }
 }

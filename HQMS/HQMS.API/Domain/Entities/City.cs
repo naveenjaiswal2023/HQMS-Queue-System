@@ -1,4 +1,6 @@
-﻿namespace HQMS.API.Domain.Entities
+﻿using HQMS.Domain.Entities.Common;
+
+namespace HQMS.API.Domain.Entities
 {
     public class City : BaseEntity
     {

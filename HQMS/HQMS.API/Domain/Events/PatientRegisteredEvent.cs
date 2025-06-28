@@ -1,8 +1,8 @@
-﻿using HospitalQueueSystem.Domain.Common;
+﻿using HQMS.Domain.Common;
 using HQMS.API.Domain.Entities;
 using MediatR;
 
-namespace HospitalQueueSystem.Domain.Events
+namespace HQMS.Domain.Events
 {
     public class PatientRegisteredEvent : IDomainEvent, INotification
     {
@@ -10,39 +10,38 @@ namespace HospitalQueueSystem.Domain.Events
         public string Name { get; }
         public int Age { get; }
         public string Gender { get; }
-        public string Department { get; }
+        public string DepartmentName { get; } // ✅ changed
         public string PhoneNumber { get; }
         public string Email { get; }
         public string Address { get; }
         public string BloodGroup { get; }
-        public Guid HospitalId { get; }
-        public Guid DoctorId { get; }
+        public string HospitalName { get; }
+        public string DoctorName { get; }
 
-        // All parameter names exactly match the property names
         public PatientRegisteredEvent(
             Guid patientId,
             string name,
             int age,
             string gender,
-            string department,
-            string phoneNumber,              // changed from phoneNo
+            string departmentName,            // ✅ changed
+            string phoneNumber,
             string email,
             string address,
             string bloodGroup,
-            Guid hospitalId,
-            Guid doctorId)
+            string hospitalName,
+            string doctorName)
         {
             PatientId = patientId;
             Name = name;
             Age = age;
             Gender = gender;
-            Department = department;
-            PhoneNumber = phoneNumber;      // matched
+            DepartmentName = departmentName;  // ✅ matched
+            PhoneNumber = phoneNumber;
             Email = email;
             Address = address;
             BloodGroup = bloodGroup;
-            HospitalId = hospitalId;
-            DoctorId = doctorId;
+            HospitalName = hospitalName;
+            DoctorName = doctorName;
         }
     }
 }

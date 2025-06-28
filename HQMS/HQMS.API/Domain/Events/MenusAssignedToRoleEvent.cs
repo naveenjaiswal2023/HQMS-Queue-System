@@ -1,4 +1,4 @@
-﻿using HospitalQueueSystem.Domain.Common;
+﻿using HQMS.Domain.Common;
 
 namespace HQMS.API.Domain.Events
 {

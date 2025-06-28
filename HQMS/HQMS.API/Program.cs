@@ -1,25 +1,23 @@
 ﻿using AspNetCoreRateLimit;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
-using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Application.DTO;
-using HospitalQueueSystem.Application.Handlers;
-using HospitalQueueSystem.Application.Services;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Data;
-using HospitalQueueSystem.Infrastructure.Events;
-using HospitalQueueSystem.Infrastructure.Repositories;
-using HospitalQueueSystem.Infrastructure.Seed;
-using HospitalQueueSystem.Infrastructure.SignalR;
-using HospitalQueueSystem.Shared.Utilities;
-using HospitalQueueSystem.WebAPI.Controllers;
+using HQMS.Application.Common;
+using HQMS.Application.Handlers;
+using HQMS.Domain.Entities;
+using HQMS.Domain.Events;
+using HQMS.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
+using HQMS.Infrastructure.Events;
+using HQMS.Infrastructure.SignalR;
+using HQMS.Shared.Utilities;
+using HQMS.WebAPI.Controllers;
 using HospitalQueueSystem.WebAPI.Middleware;
+using HQMS.API.Application;
 using HQMS.API.Application.DTO;
 using HQMS.API.Application.Services;
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.API.Infrastructure;
 using HQMS.API.Infrastructure.Repositories;
 using HQMS.API.WebAPI.Controllers;
 using HQMS.Infrastructure.Repositories;
@@ -33,6 +31,8 @@ using Polly;
 using Serilog;
 using Serilog.Events;
 using System.Text;
+using HQMS.Application.DTO;
+using HQMS.Infrastructure.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,10 +68,10 @@ if (!builder.Environment.IsDevelopment())
         builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
     }
 }
-
-// 3. Use final configuration
+// Add application layers
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 var configuration = builder.Configuration;
-// 4. Get secrets from Key Vault or appsettings.Development.json
 var azureServiceBusConnectionString = configuration["AzureServiceBusConnectionString"];
 var blobStorageConnectionString = configuration["BlobStorageConnectionString"];
 var blobContainerName = configuration["Logging:BlobStorage:ContainerName"];
@@ -173,43 +173,11 @@ builder.Services.AddSingleton(new List<TopicSubscriptionPair>
     new TopicSubscriptionPair { TopicName = "doctor-queue", SubscriptionName = "doctor-queue-subscription" }
 });
 
-// Register other services
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<PatientController>();
-builder.Services.AddScoped<RolesController>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IRepository<Patient>, PatientRepository>();
-builder.Services.AddScoped<IRepository<Menu>, MenuRepository>();
-builder.Services.AddScoped<IRoleMenuRepository, RoleMenuRepository >();
-//builder.Services.AddScoped<IQueueRepository, QueueRepository>();
-
 // Event Handlers
 builder.Services.AddScoped<DoctorQueueCreatedEventHandler>();
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssemblyContaining<RegisterPatientCommandHandler>();
-});
-
-// Azure Service Bus Publisher & Subscriber
-builder.Services.AddHostedService<AzureBusBackgroundService>();
-builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
-
-builder.Services.AddHostedService<HospitalDataSyncService>();
-
-// Register IHttpContextAccessor (for accessing user info in services)
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddScoped<IUserContextService, UserContextService>();
-
-// SignalR
-builder.Services.AddSignalR();
-builder.Services.AddSingleton<INotificationService, NotificationService>();
-
-// In-Memory Caching
-builder.Services.AddMemoryCache(); // Register IMemoryCache
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration["Redis:ConnectionString"];
 });
 
 // Rate Limiting
@@ -288,7 +256,7 @@ builder.Services.AddSwaggerGen(options =>
 
 // Controllers
 builder.Services.AddControllers();
-
+builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -335,9 +303,17 @@ app.UseAuthorization();
 
 // 🧭 Endpoints (final step - actual request processing)
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapHub<NotificationHub>("/NotificationHub");
 app.MapGet("/", () => Results.Ok("🏥 Hospital Queue System API is running"));
 
-app.Run();
+// Database migration
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.Migrate();
+}
+
+    app.Run();
 
 public partial class Program { }  // This partial class is needed for WebApplicationFactory<T>

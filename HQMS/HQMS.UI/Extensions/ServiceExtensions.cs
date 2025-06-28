@@ -1,6 +1,7 @@
-﻿using HospitalQueueSystem.Web.Services;
+﻿
+using HQMS.Web.Services;
 
-namespace HospitalQueueSystem.Web.Extensions
+namespace HQMS.Web.Extensions
 {
     public static class ServiceExtensions
     {

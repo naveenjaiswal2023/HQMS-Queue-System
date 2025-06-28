@@ -1,4 +1,5 @@
-﻿using HospitalQueueSystem.Application.CommandModel;
+﻿
+using HQMS.Application.CommandModel;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

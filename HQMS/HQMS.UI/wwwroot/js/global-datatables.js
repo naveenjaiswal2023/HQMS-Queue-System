@@ -1,5 +1,5 @@
 ﻿$(document).ready(function () {
-    $('.datatable').DataTable({
+    $('.datatables').DataTable({  // ✅ correct selector
         paging: true,
         searching: true,
         ordering: true,

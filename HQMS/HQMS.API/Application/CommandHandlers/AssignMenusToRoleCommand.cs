@@ -1,10 +1,9 @@
-﻿using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Domain.Common;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿
 using HQMS.API.Application.CommandModel;
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Events;
+using HQMS.Application.Common;
+using HQMS.Domain.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;

@@ -1,7 +1,9 @@
 ﻿using HospitalQueueSystem.Web.Controllers;
-using HospitalQueueSystem.Web.Interfaces;
 using HospitalQueueSystem.Web.Models;
 using HQMS.Test.Helpers; // for MockSession
+using HQMS.Web.Controllers;
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;

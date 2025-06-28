@@ -1,12 +1,13 @@
-﻿using HospitalQueueSystem.Application.CommandModel;
-using HospitalQueueSystem.Application.DTO;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Data;
+﻿
+using HQMS.Application.CommandModel;
+using HQMS.Application.DTO;
+using HQMS.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HospitalQueueSystem.Application.CommandHandlers
+namespace HQMS.Application.CommandHandlers
 {
     public class LoginCommandHandler : IRequestHandler<LoginCommand, ResponseResultDto<object>>
     {

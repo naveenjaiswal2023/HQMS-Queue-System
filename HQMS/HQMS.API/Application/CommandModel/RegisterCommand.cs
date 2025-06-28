@@ -1,7 +1,7 @@
-﻿using HospitalQueueSystem.Domain.Interfaces;
+﻿using HQMS.Domain.Interfaces;
 using MediatR;
 
-namespace HospitalQueueSystem.Application.CommandModel
+namespace HQMS.Application.CommandModel
 {
     public class RegisterCommand : IRequest<ICommandResult>
     {

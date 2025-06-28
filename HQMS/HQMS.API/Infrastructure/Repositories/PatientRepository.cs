@@ -1,12 +1,15 @@
-﻿using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Infrastructure.Data;
+﻿using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.Domain.Entities;
+using HQMS.Domain.Events;
+using HQMS.Infrastructure.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace HQMS.Infrastructure.Repositories
 {
-    public class PatientRepository : IRepository<Patient>
+    public class PatientRepository : IPatientRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -65,5 +68,31 @@ namespace HQMS.Infrastructure.Repositories
         {
             throw new NotImplementedException();
         }
+
+        public async Task<List<PatientRegisteredEvent>> GetAllPatientsAsync(CancellationToken cancellationToken = default)
+        {
+            return await (
+                from patient in _context.Patients
+                join hospital in _context.Hospitals on patient.HospitalId equals hospital.HospitalId
+                join department in _context.Departments on patient.DepartmentId equals department.DepartmentId
+                join doctor in _context.Doctors on patient.PrimaryDoctorId equals doctor.Id into doctorJoin
+                from doctor in doctorJoin.DefaultIfEmpty() // 👈 handle null doctor
+                orderby patient.CreatedAt descending
+                select new PatientRegisteredEvent(
+                    patient.PatientId,
+                    patient.Name,
+                    patient.Age,
+                    patient.Gender,
+                    department.DepartmentName,
+                    patient.PhoneNumber,
+                    patient.Email,
+                    patient.Address,
+                    patient.BloodGroup,
+                    hospital.Name,
+                    doctor != null ? doctor.FullName : "N/A"
+                )
+            ).ToListAsync(cancellationToken);
+        }
+
     }
 }

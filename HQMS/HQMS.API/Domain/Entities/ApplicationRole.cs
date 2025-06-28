@@ -1,4 +1,4 @@
-﻿using HospitalQueueSystem.Domain.Common;
+﻿using HQMS.Domain.Common;
 using HQMS.API.Domain.Events;
 using Microsoft.AspNetCore.Identity;
 using System.Collections.Generic;
@@ -11,7 +11,8 @@ namespace HQMS.API.Domain.Entities
         public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
         // ✅ Add this for EF Core navigation
-        public virtual ICollection<RoleMenu> RoleMenus { get; set; } = new List<RoleMenu>();
+        public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+        public ICollection<RoleMenu> RoleMenus { get; set; } = new List<RoleMenu>();
 
         public ApplicationRole() : base() { }
 

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace HospitalQueueSystem.Domain.Entities
+namespace HQMS.Domain.Entities
 {
     public class TwoFactorVerificationModel
     {

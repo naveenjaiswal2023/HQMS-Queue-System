@@ -1,5 +1,5 @@
-﻿using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Infrastructure.SignalR;
+﻿using HQMS.Domain.Events;
+using HQMS.Infrastructure.SignalR;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 

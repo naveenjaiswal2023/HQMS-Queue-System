@@ -1,11 +1,13 @@
-﻿using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Infrastructure.Data;
+﻿
 using HQMS.API.Domain.Interfaces;
+using HQMS.Domain.Entities;
+using HQMS.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace HospitalQueueSystem.Infrastructure.Repositories
+namespace HQMS.Infrastructure.Repositories
 {
-    public class DoctorQueueRepository : IRepository<DoctorQueue>
+    public class DoctorQueueRepository : IDoctorQueueRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -32,7 +34,7 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
         public async Task<int> UpdateAsync(DoctorQueue doctorQueue)
         {
             _context.DoctorQueues.Update(doctorQueue);
-            return await _context.SaveChangesAsync(); // returns affected rows
+            return await _context.SaveChangesAsync();
         }
 
         public async Task<int> DeleteAsync(Guid id)
@@ -43,14 +45,12 @@ namespace HospitalQueueSystem.Infrastructure.Repositories
                 _context.DoctorQueues.Remove(entity);
                 return await _context.SaveChangesAsync();
             }
-            return 0; // nothing deleted
+            return 0;
         }
 
-        // Optional: Custom method specific to DoctorQueue
-        public async Task<DoctorQueue?> GetByDoctorIdAsync(Guid doctorId) // Changed parameter type to Guid
+        public async Task<DoctorQueue?> GetByDoctorIdAsync(Guid doctorId)
         {
-            return await _context.DoctorQueues
-                .FirstOrDefaultAsync(q => q.DoctorId == doctorId); // No change needed here as DoctorId is already Guid
+            return await _context.DoctorQueues.FirstOrDefaultAsync(q => q.DoctorId == doctorId);
         }
 
         public Task RemoveRange(IEnumerable<DoctorQueue> entities)

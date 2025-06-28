@@ -1,4 +1,4 @@
-﻿using HospitalQueueSystem.Domain.Interfaces;
+﻿
 using HQMS.API.Application.QuerieModel;
 using HQMS.API.Domain.Events;
 using MediatR;

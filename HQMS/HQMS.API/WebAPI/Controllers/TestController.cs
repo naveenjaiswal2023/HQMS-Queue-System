@@ -1,4 +1,4 @@
-﻿using HospitalQueueSystem.Infrastructure.SignalR;
+﻿using HQMS.Infrastructure.SignalR;
 using HQMS.API.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

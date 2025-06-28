@@ -1,11 +1,11 @@
-﻿using HospitalQueueSystem.Application.Common;
+﻿
 using HQMS.API.Application.CommandModel;
 using HQMS.API.Domain.Events;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using HospitalQueueSystem.Domain.Interfaces;
-using HQMS.API.Domain.Entities; // Assuming ApplicationRole is here
+using HQMS.API.Domain.Entities;
+using HQMS.Application.Common; // Assuming ApplicationRole is here
 
 namespace HQMS.API.Application.CommandHandlers
 {

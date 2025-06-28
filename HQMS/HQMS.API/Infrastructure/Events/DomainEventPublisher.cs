@@ -1,12 +1,12 @@
-﻿using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Domain.Common;
+﻿using HQMS.Application.Common;
+using HQMS.Domain.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace HospitalQueueSystem.Infrastructure.Events
+namespace HQMS.Infrastructure.Events
 {
     public class DomainEventPublisher : IDomainEventPublisher
     {

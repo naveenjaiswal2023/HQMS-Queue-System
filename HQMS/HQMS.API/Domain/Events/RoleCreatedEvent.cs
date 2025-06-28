@@ -1,4 +1,5 @@
-﻿using HospitalQueueSystem.Domain.Common;
+﻿
+using HQMS.Domain.Common;
 using MediatR;
 
 namespace HQMS.API.Domain.Events

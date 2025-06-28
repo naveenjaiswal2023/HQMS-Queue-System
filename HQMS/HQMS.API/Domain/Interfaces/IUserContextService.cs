@@ -1,4 +1,4 @@
-﻿namespace HospitalQueueSystem.Domain.Interfaces
+﻿namespace HQMS.Domain.Interfaces
 {
     public interface IUserContextService
     {

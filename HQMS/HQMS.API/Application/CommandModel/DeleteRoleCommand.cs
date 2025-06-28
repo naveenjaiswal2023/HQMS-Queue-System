@@ -1,4 +1,4 @@
-﻿using HospitalQueueSystem.Domain.Entities;
+﻿
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 

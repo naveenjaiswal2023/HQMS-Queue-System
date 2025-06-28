@@ -1,15 +1,14 @@
-﻿using HospitalQueueSystem.Domain.Events;
-using MediatR;
+﻿using MediatR;
 
-namespace HospitalQueueSystem.Application.Commands
+namespace HQMS.Application.Commands
 {
     public class RegisterPatientCommand : IRequest<bool>
     {
         public string Name { get; }
         public int Age { get; }
         public string Gender { get; }
-        public string Department { get; }
-        public DateTime RegisteredAt { get; } = DateTime.UtcNow; // Default to current time
+        public Guid DepartmentId { get; } // ✅ Updated
+        public DateTime RegisteredAt { get; } = DateTime.UtcNow;
         public string PhoneNumber { get; }
         public string Email { get; }
         public string Address { get; }
@@ -17,19 +16,27 @@ namespace HospitalQueueSystem.Application.Commands
         public Guid HospitalId { get; }
         public Guid DoctorId { get; }
 
-        public RegisterPatientCommand(string name, int age, string gender, string department, string phoneNumber, string emailId, string address, string bloodGroup, Guid hospitalId, Guid doctorId)
+        public RegisterPatientCommand(
+            string name,
+            int age,
+            string gender,
+            Guid departmentId,           // ✅ Updated
+            string phoneNumber,
+            string emailId,
+            string address,
+            string bloodGroup,
+            Guid hospitalId,
+            Guid doctorId)
         {
             Name = name;
             Age = age;
             Gender = gender;
-            Department = department;
+            DepartmentId = departmentId;  // ✅ Updated
             PhoneNumber = phoneNumber;
             Email = emailId;
             Address = address;
             BloodGroup = bloodGroup;
             HospitalId = hospitalId;
-            DoctorId = doctorId;
-            HospitalId= hospitalId;
             DoctorId = doctorId;
         }
     }

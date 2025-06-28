@@ -1,14 +1,13 @@
 ﻿using Azure.Messaging.ServiceBus;
-using HospitalQueueSystem.Application.CommandModel;
-using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Application.Handlers;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
+using HQMS.Application.CommandModel;
+using HQMS.Application.Common;
+using HQMS.Application.Handlers;
+using HQMS.Domain.Events;
+
 using MediatR;
 using System.Text.Json;
 
-namespace HospitalQueueSystem.Application.EventHandlers
+namespace HQMS.Application.EventHandlers
 {
     public class PatientUpdateEventHandler : INotificationHandler<PatientUpdatedEvent>
     {

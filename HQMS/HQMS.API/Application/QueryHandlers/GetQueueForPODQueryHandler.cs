@@ -1,9 +1,9 @@
-﻿using HospitalQueueSystem.Application.QuerieModel;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿
+using HQMS.Application.QuerieModel;
+using HQMS.Domain.Entities;
 using MediatR;
 
-namespace HospitalQueueSystem.Application.QueryHandlers
+namespace HQMS.Application.QueryHandlers
 {
     public class GetQueueForPODQueryHandler : IRequestHandler<GetQueueForPODQuery, List<QueueEntry>>
     {

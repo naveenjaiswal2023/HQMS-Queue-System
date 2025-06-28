@@ -1,15 +1,15 @@
 ﻿using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
-using HospitalQueueSystem.Web.Extensions;
-using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
-using HospitalQueueSystem.Web.Services;
 using HQMS.UI.Handlers;
 using HQMS.UI.Interfaces;
 using HQMS.UI.Middlewares;
 using HQMS.UI.Models;
 using HQMS.UI.Services;
+using HQMS.Web.Extensions;
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
+using HQMS.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -83,7 +83,7 @@ try
             .ReadFrom.Services(services);                      //  Required to register DiagnosticContext
     });
 
-    Console.WriteLine("✅ Serilog configured.");
+    Console.WriteLine("Serilog configured.");
 }
 catch (Exception ex)
 {
@@ -104,9 +104,10 @@ builder.Services.AddTransient<AuthorizationHandler>();
 
 builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
-
+builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
 builder.Services.AddControllersWithViews(options =>
 {

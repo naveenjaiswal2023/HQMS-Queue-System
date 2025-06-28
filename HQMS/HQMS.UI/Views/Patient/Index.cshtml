@@ -1,4 +1,5 @@
-﻿@model IEnumerable<PatientModel>
+﻿@using HQMS.Web.Models
+@model IEnumerable<PatientModel>
 
 @{
     ViewData["Title"] = "Patients";
@@ -18,14 +19,15 @@
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table id="patientsTable"
-                       class="table table-striped table-hover align-middle mb-0  datatable">
+                <table class="table table-striped table-hover align-middle datatables" id="patientsTable">
                     <thead class="table-success text-white">
                         <tr>
                             <th class="text-nowrap">#</th>
                             <th>Name</th>
                             <th class="d-none d-lg-table-cell">Age</th>
                             <th class="d-none d-lg-table-cell">Gender</th>
+                            <th class="d-none d-xxl-table-cell">Hospital</th>
+                            <th class="d-none d-xxl-table-cell">Doctor</th>
                             <th class="d-none d-xl-table-cell">Department</th>
                             <th class="d-none d-xl-table-cell">Phone</th>
                             <th class="d-none d-xxl-table-cell">Email</th>
@@ -45,7 +47,9 @@
                                     <td>@p.Name</td>
                                     <td class="d-none d-lg-table-cell">@p.Age</td>
                                     <td class="d-none d-lg-table-cell">@p.Gender</td>
-                                    <td class="d-none d-xl-table-cell">@p.Department</td>
+                                    <td class="d-none d-lg-table-cell">@p.HospitalName</td>
+                                    <td class="d-none d-lg-table-cell">@p.DoctorName</td>
+                                    <td class="d-none d-xl-table-cell">@p.DepartmentName</td>
                                     <td class="d-none d-xl-table-cell">@p.PhoneNumber</td>
                                     <td class="d-none d-xxl-table-cell">@p.Email</td>
                                     <td class="d-none d-xxl-table-cell">@p.BloodGroup</td>

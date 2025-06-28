@@ -1,7 +1,7 @@
-﻿using HospitalQueueSystem.Web.Models;
-using HospitalQueueSystem.Web.Services;
+﻿
 using HQMS.UI.Interfaces;
 using HQMS.UI.Models;
+using HQMS.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

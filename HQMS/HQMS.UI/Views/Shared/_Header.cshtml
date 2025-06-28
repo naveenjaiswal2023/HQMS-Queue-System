@@ -33,7 +33,7 @@
                 <i class="fas fa-moon"></i>
             </button>
 
-            @if (isLoggedIn && userRole == "Admin")
+            @if (isLoggedIn && (userRole == "Admin" || userRole == "POD" || userRole == "Doctor"))
             {
                 <div class="dropdown">
                     <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">

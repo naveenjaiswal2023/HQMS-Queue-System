@@ -1,0 +1,28 @@
+﻿@using HQMS.UI.Models
+@model UserCreateViewModel
+
+<div class="container-lg mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-user-edit me-2"></i>
+                @* @ViewContext.RouteData.Values["action"] Patient *@
+            </h4>
+        </div>
+
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <div class="form-group mb-3">
+                    <label asp-for="SelectedRoleId" class="form-label">Select Role</label>
+                    <select asp-for="SelectedRoleId" asp-items="Model.Roles" class="form-control">
+                        <option value="">-- Select Role --</option>
+                    </select>
+                    <span asp-validation-for="SelectedRoleId" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create</button>
+                <a asp-action="Index" class="btn btn-secondary ms-2">Back to List</a>
+            </form>
+        </div>
+    </div>
+</div>

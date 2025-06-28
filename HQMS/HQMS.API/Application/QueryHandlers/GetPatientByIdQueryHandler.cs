@@ -1,8 +1,7 @@
-﻿using HospitalQueueSystem.Application.Queries;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿
 using HQMS.API.Application.QuerieModel;
+using HQMS.API.Application.QueriesModel;
+using HQMS.Domain.Events;
 using MediatR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -58,7 +57,7 @@ namespace HQMS.API.Application.QueryHandlers
                     patient.Name,
                     patient.Age,
                     patient.Gender,
-                    patient.Department,
+                    patient.DepartmentId,
                     patient.PhoneNumber,
                     patient.Email,
                     patient.Address,

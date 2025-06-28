@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using HQMS.Domain.Entities.Common;
+using System.Numerics;
 
 namespace HQMS.API.Domain.Entities
 {

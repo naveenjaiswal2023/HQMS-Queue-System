@@ -1,0 +1,87 @@
+﻿@using HQMS.UI.Models
+@model RolePermissionAssignmentViewModel
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center text-primary">
+        Assign Permissions to Role: <span class="text-dark">@Model.RoleName</span>
+    </h2>
+
+    <!-- Role Dropdown -->
+    <form asp-action="AssignPermissions" method="get" class="mb-4">
+        <div class="row mb-3">
+            <div class="col-md-6 offset-md-3">
+                <label asp-for="RoleId" class="form-label fw-bold">Select Role</label>
+                <select asp-for="RoleId" asp-items="Model.AvailableRoles" class="form-select"
+                        onchange="this.form.submit()">
+                    <option value="">-- Select a Role --</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.MenuPermissions != null && Model.MenuPermissions.Any())
+    {
+        <!-- Permission Assignment Form -->
+        <form asp-action="AssignPermissions" method="post">
+            <input type="hidden" asp-for="RoleId" />
+
+            <div class="accordion" id="accordionMenus">
+                @for (int i = 0; i < Model.MenuPermissions.Count; i++)
+                {
+                    var menu = Model.MenuPermissions[i];
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading@(i)">
+                            <button class="accordion-button collapsed fw-bold" type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#collapse@(i)"
+                                    aria-expanded="false"
+                                    aria-controls="collapse@(i)">
+                                @menu.MenuName
+                            </button>
+                        </h2>
+                        <div id="collapse@(i)" class="accordion-collapse collapse" data-bs-parent="#accordionMenus">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-12 col-md-10 mx-auto">
+                                        <ul class="list-group">
+                                            @for (int j = 0; j < menu.Permissions.Count; j++)
+                                            {
+                                                var permission = menu.Permissions[j];
+                                                <li class="list-group-item">
+                                                    <div class="form-check">
+                                                        <input type="hidden" name="MenuPermissions[@i].Permissions[@j].PermissionId" value="@permission.PermissionId" />
+                                                        <input type="hidden" name="MenuPermissions[@i].Permissions[@j].PermissionName" value="@permission.PermissionName" />
+                                                        <input class="form-check-input me-2"
+                                                               type="checkbox"
+                                                               name="MenuPermissions[@i].Permissions[@j].IsAssigned"
+                                                               value="true"
+                                                               @(permission.IsAssigned ? "checked" : "") />
+                                                        <label class="form-check-label">@permission.PermissionName</label>
+                                                    </div>
+                                                </li>
+                                            }
+                                        </ul>
+                                        <input type="hidden" name="MenuPermissions[@i].MenuId" value="@menu.MenuId" />
+                                        <input type="hidden" name="MenuPermissions[@i].MenuName" value="@menu.MenuName" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success px-4 py-2">
+                    <i class="fas fa-save me-2"></i> Save Permissions
+                </button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            Please select a role to assign permissions.
+        </div>
+    }
+</div>

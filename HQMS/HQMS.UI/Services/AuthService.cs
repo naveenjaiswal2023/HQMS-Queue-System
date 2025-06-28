@@ -1,8 +1,9 @@
-﻿using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
+﻿
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
 using Microsoft.AspNetCore.Identity.Data;
 
-namespace HospitalQueueSystem.Web.Services
+namespace HQMS.Web.Services
 {
     public class AuthService : IAuthService
     {

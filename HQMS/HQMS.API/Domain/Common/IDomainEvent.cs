@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace HospitalQueueSystem.Domain.Common
+namespace HQMS.Domain.Common
 {
     public interface IDomainEvent : INotification
     {

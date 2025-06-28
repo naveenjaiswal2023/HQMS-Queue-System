@@ -1,5 +1,6 @@
-﻿using HospitalQueueSystem.Infrastructure.SignalR;
+﻿
 using HQMS.API.Domain.Interfaces;
+using HQMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.SignalR;
 using System.Text.Json;
 

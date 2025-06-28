@@ -1,10 +1,10 @@
-﻿using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
-using HospitalQueueSystem.Web.Services;
+﻿
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HospitalQueueSystem.Web.Controllers
+namespace HQMS.Web.Controllers
 {
     [Authorize]
     public class PatientController : BaseController

@@ -1,4 +1,4 @@
-﻿namespace HospitalQueueSystem.Application.DTO
+﻿namespace HQMS.Application.DTO
 {
     public class ResponseResultDto<T>
     {

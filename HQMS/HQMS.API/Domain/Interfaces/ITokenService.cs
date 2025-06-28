@@ -1,7 +1,9 @@
-﻿using HospitalQueueSystem.Application.DTO;
-using HospitalQueueSystem.Infrastructure.Data;
+﻿
 
-namespace HospitalQueueSystem.Domain.Interfaces
+using HQMS.Application.DTO;
+using HQMS.Infrastructure.Data;
+
+namespace HQMS.Domain.Interfaces
 {
     public interface ITokenService
     {

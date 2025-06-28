@@ -1,16 +1,13 @@
 ﻿using Azure.Messaging.ServiceBus;
-using HospitalQueueSystem.Application.EventHandlers;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Data;
+using HQMS.Application.EventHandlers;
+using HQMS.Domain.Events;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Text.Json;
 using System.Threading;
 
-namespace HospitalQueueSystem.Application.Handlers
+namespace HQMS.Application.Handlers
 {
     public class DoctorQueueCreatedEventHandler : INotificationHandler<DoctorQueueCreatedEvent>
     {

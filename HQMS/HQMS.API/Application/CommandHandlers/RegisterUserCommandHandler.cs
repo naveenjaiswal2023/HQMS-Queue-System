@@ -1,11 +1,11 @@
-﻿using HospitalQueueSystem.Application.CommandModel;
-using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Data;
+﻿using HQMS.Application.CommandModel;
+using HQMS.Application.Common;
+using HQMS.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
-namespace HospitalQueueSystem.Application.CommandHandlers
+namespace HQMS.Application.CommandHandlers
 {
     public class RegisterUserCommandHandler : IRequestHandler<RegisterCommand, ICommandResult>
     {

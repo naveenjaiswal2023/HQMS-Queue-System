@@ -1,12 +1,9 @@
-﻿using HospitalQueueSystem.Application.CommandModel;
-using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿using HQMS.Application.CommandModel;
+using HQMS.Application.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace HospitalQueueSystem.Application.CommandHandlers
+namespace HQMS.Application.CommandHandlers
 {
     public class CallPatientCommandHandler : IRequestHandler<CallPatientCommand, bool>
     {
@@ -39,33 +36,24 @@ namespace HospitalQueueSystem.Application.CommandHandlers
                     return false;
                 }
 
-                // Update status
-                entry.UpdateStatus("Called");
+                // Update status using the appropriate method
+                entry.MarkAsCalled();
 
                 // Persist changes
                 await _unitOfWork.QueueRepository.UpdateAsync(entry);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                // Convert PatientId and DoctorId to integers before passing to PatientCalledEvent
-                if (!int.TryParse(entry.PatientId, out var patientId))
-                {
-                    _logger.LogError("Invalid PatientId: {PatientId}", entry.PatientId);
-                    return false;
-                }
-
-                if (!int.TryParse(entry.DoctorId, out var doctorId))
-                {
-                    _logger.LogError("Invalid DoctorId: {DoctorId}", entry.DoctorId);
-                    return false;
-                }
+                // Fix: Use Guid.ToString() to convert PatientId and DoctorId to strings
+                var patientId = entry.PatientId.ToString();
+                var doctorId = entry.DoctorId.ToString();
 
                 // Publish domain events
-                foreach (var domainEvent in entry.DomainEvents)
-                {
-                    await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
-                }
+                //foreach (var domainEvent in entry.DomainEvents)
+                //{
+                //    await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
+                //}
 
-                entry.ClearDomainEvents();
+                //entry.ClearDomainEvents();
                 _logger.LogInformation("Patient {PatientId} Called successfully.", entry.PatientId);
 
                 return true;

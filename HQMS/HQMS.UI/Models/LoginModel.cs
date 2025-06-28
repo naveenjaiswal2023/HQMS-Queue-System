@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace HospitalQueueSystem.Web.Models
+namespace HQMS.Web.Models
 {
     public class LoginModel
     {

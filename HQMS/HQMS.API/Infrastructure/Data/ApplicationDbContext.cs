@@ -7,6 +7,7 @@ using HQMS.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,6 +29,8 @@ namespace HQMS.Infrastructure.Data
             _userContext = userContext;
             _eventPublisher = eventPublisher;
         }
+        // Dapper support
+        public DbConnection GetConnection() => Database.GetDbConnection();
 
         // DbSets --------------------------------------------------------------
         public DbSet<DoctorQueue> DoctorQueues { get; set; }

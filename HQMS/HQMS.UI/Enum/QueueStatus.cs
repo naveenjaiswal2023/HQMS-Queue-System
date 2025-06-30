@@ -1,4 +1,4 @@
-﻿namespace HQMS.API.Domain.Enum
+﻿namespace HQMS.UI.Enum
 {
     public enum QueueStatus
     {

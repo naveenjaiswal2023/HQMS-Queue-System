@@ -1,4 +1,5 @@
 ﻿
+using Dapper;
 using HQMS.API.Application.DTO;
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Enum;
@@ -7,6 +8,7 @@ using HQMS.API.Shared.Helpers;
 using HQMS.Domain.Entities;
 using HQMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace HQMS.Infrastructure.Repositories
 {
@@ -76,62 +78,114 @@ namespace HQMS.Infrastructure.Repositories
             await Task.CompletedTask;
         }
 
-        public async Task<List<QueueDashboardItemDto>> GetDashboardDataAsync(Guid? hospitalId, Guid? departmentId, IEnumerable<Guid> doctorIds)
+        //public async Task<List<QueueDashboardItemDto>> GetDashboardDataAsync(Guid? hospitalId, Guid? departmentId, IEnumerable<Guid> doctorIds)
+        //{
+        //    var today = DateTime.Today;
+        //    var tomorrow = today.AddDays(1);
+
+        //    try
+        //    {
+        //        var baseQuery = from queue in _context.QueueItems
+        //                        join appointment in _context.Appointments on queue.AppointmentId equals appointment.Id
+        //                        join patient in _context.Patients on appointment.PatientId equals patient.PatientId into patientJoin
+        //                        from patient in patientJoin.DefaultIfEmpty()
+        //                        join doctor in _context.Doctors on queue.DoctorId equals doctor.Id into doctorJoin
+        //                        from doctor in doctorJoin.DefaultIfEmpty()
+        //                        join department in _context.Departments on queue.DepartmentId equals department.DepartmentId into deptJoin
+        //                        from department in deptJoin.DefaultIfEmpty()
+        //                        join hospital in _context.Hospitals on appointment.HospitalId equals hospital.HospitalId
+        //                        where !queue.IsDeleted &&
+        //                              queue.JoinedAt >= today &&
+        //                              queue.JoinedAt < tomorrow
+        //                        select new
+        //                        {
+        //                            queue,
+        //                            appointment,
+        //                            patient,
+        //                            doctor,
+        //                            department,
+        //                            hospital
+        //                        };
+
+        //        // ✅ Apply filters BEFORE switching to AsEnumerable()
+        //        if (hospitalId.HasValue)
+        //        {
+        //            baseQuery = baseQuery.Where(x => x.appointment.HospitalId == hospitalId.Value);
+        //        }
+
+        //        if (departmentId.HasValue)
+        //        {
+        //            baseQuery = baseQuery.Where(x => x.queue.DepartmentId == departmentId.Value);
+        //        }
+
+        //        if (doctorIds != null && doctorIds.Any())
+        //        {
+        //            baseQuery = baseQuery.Where(x => doctorIds.Contains(x.queue.DoctorId));
+        //        }
+
+        //        // ✅ Now switch to in-memory for row-number like logic
+        //        var groupedResult = baseQuery
+        //            .AsEnumerable()
+        //            .GroupBy(x => new { x.queue.DoctorId, x.appointment.HospitalId, x.queue.DepartmentId })
+        //            .SelectMany(group => group
+        //                .OrderBy(x => x.queue.JoinedAt)
+        //                .Select((x, index) => new QueueDashboardItemDto
+        //                {
+        //                    QueueId = x.queue.Id, // original QueueItem.Id
+        //                    QueueNumber = x.queue.QueueNumber,
+        //                    PatientName = x.patient?.Name ?? "Unknown",
+        //                    DoctorName = $"{x.doctor?.FirstName} {x.doctor?.LastName}".Trim(),
+        //                    AppointmentTime = x.appointment.AppointmentTime,
+        //                    Department = x.department?.DepartmentName ?? "Unknown",
+        //                    HospitalName = x.hospital?.Name ?? "Unknown",
+        //                    Status = EnumHelper.GetName<QueueStatus>(x.queue.Status)
+        //                }))
+        //            .ToList(); // ✅ No await here — purely in-memory now
+
+        //        return groupedResult;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"[QueueRepository] GetDashboardDataAsync failed: {ex.Message}");
+        //        return new List<QueueDashboardItemDto>(); // ✅ safe fallback
+        //    }
+        //}
+
+        public async Task<List<QueueItem>> GetQueuesByDoctorDepartmentHospitalAsync(Guid doctorId,  Guid departmentId, Guid hospitalId, DateTime date)
         {
-            var today = DateTime.Today;
-            var tomorrow = today.AddDays(1);
-
-            var query = from queue in _context.QueueItems
-                        join appointment in _context.Appointments on queue.AppointmentId equals appointment.Id
-                        join patient in _context.Patients on appointment.PatientId equals patient.PatientId into patientJoin
-                        from patient in patientJoin.DefaultIfEmpty()
-                        join doctor in _context.Doctors on appointment.DoctorId equals doctor.Id into doctorJoin
-                        from doctor in doctorJoin.DefaultIfEmpty()
-                        join department in _context.Departments on queue.DepartmentId equals department.DepartmentId into deptJoin
-                        from department in deptJoin.DefaultIfEmpty()
-                        where !queue.IsDeleted &&
-                              appointment.AppointmentTime >= today &&
-                              appointment.AppointmentTime < tomorrow
-                        select new
-                        {
-                            queue,
-                            appointment,
-                            patient,
-                            doctor,
-                            department
-                        };
-
-            if (hospitalId.HasValue)
-            {
-                query = query.Where(x => x.appointment.HospitalId == hospitalId.Value);
-            }
-
-            if (departmentId.HasValue)
-            {
-                query = query.Where(x => x.queue.DepartmentId == departmentId.Value);
-            }
-
-            if (doctorIds != null && doctorIds.Any())
-            {
-                query = query.Where(x => x.doctor != null && doctorIds.Contains(x.doctor.Id));
-            }
-
-            var result = await query
-                .OrderBy(x => x.appointment.AppointmentTime)
-                .Select(x => new QueueDashboardItemDto
-                {
-                    QueueNumber = x.queue.QueueNumber,
-                    PatientName = x.patient != null ? x.patient.Name : "Unknown",
-                    DoctorName = x.doctor != null ? x.doctor.FirstName + " " + x.doctor.LastName : "Unknown",
-                    AppointmentTime = x.appointment.AppointmentTime,
-                    Department = x.department != null ? x.department.DepartmentName : "Unknown",
-                    Status = EnumHelper.GetName<QueueStatus>(x.queue.Status)
-                })
+            return await (from q in _context.QueueItems
+                          join a in _context.Appointments
+                              on q.AppointmentId equals a.Id
+                          where q.DoctorId == doctorId
+                                && q.DepartmentId == departmentId
+                                && a.HospitalId == hospitalId
+                                && q.JoinedAt.Date == date
+                          orderby q.JoinedAt
+                          select q)
                 .ToListAsync();
-
-            return result;
         }
 
+
+        public async Task<List<QueueDashboardItemDto>> GetDashboardDataAsync(Guid? hospitalId, Guid? departmentId, IEnumerable<Guid> doctorIds)
+        {
+            using var connection = _context.GetConnection();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@HospitalId", hospitalId, DbType.Guid);
+            parameters.Add("@DepartmentId", departmentId, DbType.Guid);
+            parameters.Add("@DoctorId", doctorIds?.FirstOrDefault(), DbType.Guid); // ✅ Explicit type
+
+            if (connection.State != ConnectionState.Open)
+                await connection.OpenAsync();
+
+            var result = await connection.QueryAsync<QueueDashboardItemDto>(
+                "GetQueueDashboardData",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result.ToList();
+        }
 
         public Task<List<QueueEntry>> GetQueueByDoctorIdAsync(int doctorId)
         {

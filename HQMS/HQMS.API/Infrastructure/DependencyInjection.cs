@@ -22,9 +22,7 @@ namespace HQMS.API.Infrastructure
     {
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // 📦 Database Context
-            //services.AddDbContext<StaffDbContext>(options =>
-            //    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            
 
             // ⚡ Redis Cache
             services.AddStackExchangeRedisCache(options =>
@@ -76,32 +74,7 @@ namespace HQMS.API.Infrastructure
             services.AddScoped<IRoleMenuRepository, RoleMenuRepository>();
             services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
             services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-            // Fix for CS0311: Ensure that DoctorQueueRepository implements IDoctorQueueRepository
             services.AddScoped<IDoctorQueueRepository, DoctorQueueRepository>();
-
-            //services.AddScoped<IQueueServiceClient, QueueServiceClient>();
-            //services.AddScoped<IHttpClientService, HttpClientService>();
-            //services.AddScoped<ICurrentUserService, CurrentUserService>();
-            //services.AddHttpContextAccessor();
-            //services.AddScoped<IUnitOfWork, UnitOfWork>();
-            //services.AddScoped<INotificationService, NotificationService>();
-            //services.AddScoped<ICacheService, CacheService>();
-            //services.AddScoped<IQueueRepository, QueueRepository>();
-
-            //services.AddHttpClient("QueueService", (serviceProvider, client) =>
-            //{
-            //    var config = serviceProvider.GetRequiredService<IConfiguration>();
-            //    client.BaseAddress = new Uri(config["ServiceUrls:QueueService"]);
-            //});
-
-            //services.AddHttpClient("PatientService", (serviceProvider, client) =>
-            //{
-            //    var config = serviceProvider.GetRequiredService<IConfiguration>();
-            //    client.BaseAddress = new Uri(config["ServiceUrls:PatientService"]);
-            //});
-
-            // ✅ Generic reusable HttpClient for internal services
-            //services.AddHttpClient<IHttpClientService, HttpClientService>();
 
             return services;
         }

@@ -36,63 +36,97 @@ using HQMS.Infrastructure.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bind appsettings.json
-builder.Configuration
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true);
-
-builder.Services.Configure<MaintenanceModeOptionsDto>(
-    builder.Configuration.GetSection("MaintenanceMode"));
-
-builder.Services.Configure<ExternalApiOptions>(
-    builder.Configuration.GetSection("ExternalApi"));
-
-var environment = builder.Environment.EnvironmentName;
-var isDevelopment = builder.Environment.IsDevelopment();
-
-// 1. Load base + environment-specific config
+// Bind base + environment-specific appsettings
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-if (!builder.Environment.IsDevelopment())
+var environment = builder.Environment;
+var isDevelopment = environment.IsDevelopment();
+
+// Add Azure Key Vault only in non-dev environments
+if (!isDevelopment)
 {
-    // 2. Load Key Vault in non-dev environments
     var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
     if (!string.IsNullOrEmpty(keyVaultUrl))
     {
-        var credential = new DefaultAzureCredential();
-        builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+        try
+        {
+            var credential = new DefaultAzureCredential();
+            builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+            Console.WriteLine("✅ Azure Key Vault loaded.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to load Azure Key Vault: {ex.Message}");
+        }
+    }
+    else
+    {
+        Console.WriteLine("ℹ️ Azure Key Vault URL not configured.");
     }
 }
-// Add application layers
-builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
+
+// Extract settings after full config is loaded
 var configuration = builder.Configuration;
-var azureServiceBusConnectionString = configuration["AzureServiceBusConnectionString"];
 var blobStorageConnectionString = configuration["BlobStorageConnectionString"];
 var blobContainerName = configuration["Logging:BlobStorage:ContainerName"];
 var dbPassword = configuration["QmsDbPassword"];
 var connTemplate = configuration.GetConnectionString("DefaultConnection");
 var actualConnectionString = connTemplate?.Replace("_QmsDbPassword_", dbPassword);
+var azureServiceBusConnectionString = configuration["AzureServiceBusConnectionString"];
+// Bind strongly typed configs
+builder.Services.Configure<MaintenanceModeOptionsDto>(
+    configuration.GetSection("MaintenanceMode"));
 
-// Configure Serilog with Azure Blob Storage
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .WriteTo.Console()
-    .WriteTo.AzureBlobStorage(
-        connectionString: blobStorageConnectionString,
-        storageContainerName: blobContainerName,
-        storageFileName: "hqms-api-log-{yyyyMMdd}.txt",
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
-        restrictedToMinimumLevel: LogEventLevel.Information)
-    .CreateLogger();
+builder.Services.Configure<ExternalApiOptions>(
+    configuration.GetSection("ExternalApi"));
 
-// Use Serilog as the app's logger
-builder.Host.UseSerilog();
+// Register app services
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(configuration);
+
+// Configure Serilog logging
+try
+{
+    builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+    {
+        loggerConfiguration.MinimumLevel.Information()
+            .WriteTo.Console();
+
+        if (isDevelopment)
+        {
+            loggerConfiguration.WriteTo.File(
+                path: "Logs/hqms-api-log-.txt",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
+                rollingInterval: RollingInterval.Day,
+                restrictedToMinimumLevel: LogEventLevel.Information);
+            Console.WriteLine("📄 Serilog writing to local file (Development).");
+        }
+        else
+        {
+            loggerConfiguration.WriteTo.AzureBlobStorage(
+                connectionString: blobStorageConnectionString,
+                storageContainerName: blobContainerName,
+                storageFileName: "hqms-api-log-{yyyyMMdd}.txt",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
+                restrictedToMinimumLevel: LogEventLevel.Information);
+            Console.WriteLine("☁️ Serilog writing to Azure Blob Storage (Production).");
+        }
+
+        loggerConfiguration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services);
+    });
+
+    Console.WriteLine("✅ Serilog configured.");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"❌ Serilog configuration failed: {ex.Message}");
+}
 
 // Add environment variables
 builder.Configuration.AddEnvironmentVariables();
@@ -185,16 +219,16 @@ builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection(
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
-builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>((sp, client) =>
-{
-    var config = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
-    client.BaseAddress = new Uri(config.BaseUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-})
-.AddTransientHttpErrorPolicy(policyBuilder =>
-    policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-.AddTransientHttpErrorPolicy(policyBuilder =>
-    policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+//builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>((sp, client) =>
+//{
+//    var config = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
+//    client.BaseAddress = new Uri(config.BaseUrl);
+//    client.DefaultRequestHeaders.Add("Accept", "application/json");
+//})
+//.AddTransientHttpErrorPolicy(policyBuilder =>
+//    policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
+//.AddTransientHttpErrorPolicy(policyBuilder =>
+//    policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
 // CORS
 

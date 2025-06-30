@@ -11,6 +11,7 @@ namespace HQMS.API.Domain.Interfaces
         Task<List<QueueItem>> GetQueueItemsForDoctorByDateAsync(Guid doctorId, DateTime date);
         Task<QueueItem?> GetByAppointmentIdAsync(Guid appointmentId);
         Task<int> GetNextPositionAsync(Guid doctorId);
+        Task<List<QueueItem>> GetQueuesByDoctorDepartmentHospitalAsync(Guid doctorId, Guid departmentId,  Guid hospitalId, DateTime date);
 
         Task<List<QueueDashboardItemDto>> GetDashboardDataAsync(Guid? hospitalId, Guid? departmentId, IEnumerable<Guid> doctorIds);
     }

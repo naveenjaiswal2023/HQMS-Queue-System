@@ -21,7 +21,7 @@ namespace HQMS.API.Application.CommandHandlers
         {
             var today = DateTime.Now.Date;
 
-            // Step 1: Check if queue already exists
+            // Step 1: Check if queue already exists for this appointment
             var existingQueue = await _unitOfWork.QueueRepository
                 .GetByAppointmentIdAsync(request.AppointmentId);
 
@@ -35,36 +35,33 @@ namespace HQMS.API.Application.CommandHandlers
             if (appointment == null)
                 throw new InvalidOperationException("Appointment not found for the given doctor and patient.");
 
-            // Step 3: Get doctor with department
+            // Step 3: Get doctor with department and hospital
             var doctor = await _unitOfWork.DoctorRepository.GetByIdAsync(request.DoctorId);
-            if (doctor == null || doctor.DepartmentId == Guid.Empty)
-                throw new InvalidOperationException("Doctor or Department not found.");
+            if (doctor == null || doctor.DepartmentId == Guid.Empty || doctor.HospitalId == Guid.Empty)
+                throw new InvalidOperationException("Doctor, department, or hospital not found.");
 
             // Step 4: Time window check
-            var now = DateTime.Now; // ✅ use UTC
+            var now = DateTime.Now;
             var timeDifference = now - appointment.AppointmentTime;
 
             if (timeDifference.Duration() > TimeSpan.FromMinutes(15))
                 return false;
 
-            // Step 5: Get today's appointments
-            var allAppointmentsToday = await _unitOfWork.AppointmentRepository
-                .GetAppointmentsForDoctorByDateAsync(request.DoctorId, today);
+            // Step 5: Get existing queues for today by Doctor + Department + Hospital
+            var existingQueues = await _unitOfWork.QueueRepository.GetQueuesByDoctorDepartmentHospitalAsync(
+            doctor.Id,
+            doctor.DepartmentId.Value,
+            doctor.HospitalId,
+            today);
 
-            var orderedAppointments = allAppointmentsToday
-                .OrderBy(a => a.AppointmentTime)
-                .ToList();
+            int nextPosition = existingQueues.Count + 1;
 
-            var index = orderedAppointments.FindIndex(a => a.Id == appointment.Id);
-            if (index == -1)
-                throw new InvalidOperationException("Appointment not found in today's schedule.");
+            string hospitalPrefix = doctor.HospitalId.ToString().Substring(0, 3).ToUpper();
+            string departmentPrefix = doctor.DepartmentId.ToString().Substring(0, 3).ToUpper();
+            string doctorPrefix = doctor.Id.ToString().Substring(0, 3).ToUpper();
+            string queueNumber = $"Q-{hospitalPrefix}-{departmentPrefix}-{doctorPrefix}-{nextPosition}";
 
-            int nextPosition = index + 1;
-
-            string doctorPrefix = request.DoctorId.ToString().Substring(0, 4).ToUpper();
-            string queueNumber = $"DR{doctorPrefix}-{nextPosition}";
-
-            // Step 6: Create QueueItem — this raises PatientQueuedEvent automatically
+            // Step 6: Create QueueItem
             var queueItem = new QueueItem(
                 Guid.NewGuid(),
                 request.DoctorId,
@@ -80,7 +77,6 @@ namespace HQMS.API.Application.CommandHandlers
 
             appointment.MarkQueueGenerated();
 
-            // 🔥 This will save + trigger PatientQueuedEvent
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;

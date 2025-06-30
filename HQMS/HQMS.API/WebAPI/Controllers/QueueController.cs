@@ -1,7 +1,9 @@
 ﻿using HQMS.API.Application.CommandModel;
 using HQMS.API.Application.DTO;
 using HQMS.API.Application.QueriesMode;
+using HQMS.API.Domain.Entities;
 using HQMS.API.WebAPI.Controllers;
+using HQMS.Domain.Events;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -30,10 +32,21 @@ namespace HQMS.WebAPI.Controllers
             }
 
             var result = await Mediator.Send(command);
-            return Ok(result);
+            if (result)
+                return Ok(new ApiResponse<string>
+                {
+                    IsSuccess = true,
+                    ErrorMessage = "Queue generated successfully."
+                });
+            else
+                return StatusCode(500, new ApiResponse<string>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Registration failed due to an internal error."
+                });
         }
 
-        [HttpGet("Dashboard")]
+        [HttpGet("GetQueueDashboard")]
         public async Task<IActionResult> GetDashboard([FromQuery] QueueDashboardRequest request)
         {
             var query = new GetQueueDashboardQuery
@@ -44,7 +57,13 @@ namespace HQMS.WebAPI.Controllers
             };
 
             var result = await Mediator.Send(query);
-            return Ok(result);
+            var response = new ApiResponse<List<QueueDashboardItemDto>>
+            {
+                IsSuccess = true,
+                Data = result
+            };
+            return Ok(response);
+            
         }
 
     }

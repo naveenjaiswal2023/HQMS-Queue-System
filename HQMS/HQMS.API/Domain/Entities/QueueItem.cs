@@ -27,7 +27,7 @@ namespace HQMS.API.Domain.Entities
         public DateTime? CalledAt { get; private set; }
         public DateTime? CompletedAt { get; private set; }
 
-        public QueueStatus Status { get; private set; } = QueueStatus.Waiting;
+        public QueueStatus Status { get; private set; } = QueueStatus.Pending;
 
         public string QueueNumber { get; private set; }
 
@@ -51,17 +51,17 @@ namespace HQMS.API.Domain.Entities
             EstimatedWaitTime = estimatedWaitTime;
             QueueNumber = queueNumber;
             JoinedAt = DateTime.UtcNow;
-            Status = QueueStatus.Waiting;
+            Status = QueueStatus.Pending;
 
             // ✅ Raise PatientQueuedEvent when created
-            //AddDomainEvent(new PatientQueuedEvent(
-            //    queueItemId: Id,
-            //    queueNumber: queueNumber,
-            //    doctorId: doctorId,
-            //    patientId: patientId,
-            //    appointmentId: appointmentId,
-            //    joinedAt: JoinedAt
-            //));
+            AddDomainEvent(new PatientQueuedEvent(
+                queueItemId: Id,
+                queueNumber: queueNumber,
+                doctorId: doctorId,
+                patientId: patientId,
+                appointmentId: appointmentId,
+                joinedAt: JoinedAt
+            ));
         }
 
         // Domain behaviors

@@ -121,9 +121,15 @@ public class AzureBusBackgroundService : BackgroundService
                     await _cache.RemoveAsync(cacheKey);
                     _logger.LogInformation("Cache invalidated for key: {CacheKey}", cacheKey);
                 }
+                else if(subject.Contains("PatientRegistered"))
+                {
+                    var cacheKey = "QueueDashboard_CacheKey"; // or use a constant/shared class
+                    await _cache.RemoveAsync(cacheKey);
+                    _logger.LogInformation("Cache invalidated for key: {CacheKey}", cacheKey);
+                }
 
-                // FIX: Call the correct method that matches your JavaScript client
-                await _notificationService.SendNotificationAsync("ReceiveNotification", eventName, message);
+                    // FIX: Call the correct method that matches your JavaScript client
+                    await _notificationService.SendNotificationAsync("ReceiveNotification", eventName, message);
 
                 _logger.LogInformation("SignalR SendAsync completed for event: {EventName}", eventName);
                 await args.CompleteMessageAsync(args.Message);

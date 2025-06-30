@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace HospitalQueueSystem.Web.Controllers
+namespace HQMS.Web.Controllers
 {
     public class BaseController : Controller
     {

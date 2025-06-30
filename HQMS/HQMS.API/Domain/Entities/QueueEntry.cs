@@ -1,9 +1,10 @@
-﻿using HospitalQueueSystem.Domain.Common;
-using HospitalQueueSystem.Domain.Events;
+﻿using HQMS.Domain.Common;
+using HQMS.Domain.Events;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using HQMS.Domain.Entities.Common;
 
-namespace HospitalQueueSystem.Domain.Entities
+namespace HQMS.Domain.Entities
 {
     public class QueueEntry : BaseEntity
     {

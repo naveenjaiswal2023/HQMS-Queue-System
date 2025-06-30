@@ -12,7 +12,9 @@
     <div class="container-fluid px-4">
         <a class="navbar-brand d-flex align-items-center" href="/">
             <i class="fas fa-hospital-symbol me-2"></i>
-            <strong>Hospital Admin</strong>
+            @* <strong>Hospital userRole</strong> *@
+            <strong> @(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Doctor") ? "Doctor" : "Pod")</strong>
+
         </a>
 
         <div class="d-flex ms-auto align-items-center">
@@ -21,7 +23,7 @@
                     <i class="fas fa-bell"></i>
                     <span id="notificationCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
                 </button>
-                <ul id="notificationList" class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="notificationDropdown" style="min-width: 250px;">
+                <ul id="notificationList" class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="notificationDropdown" style="min-width: 250px;max-height: 300px; overflow-y: auto;">
                     <li class="dropdown-header fw-bold">Notifications</li>
                     <li><hr class="dropdown-divider" /></li>
                     <li><hr class="dropdown-divider" /></li>
@@ -33,7 +35,7 @@
                 <i class="fas fa-moon"></i>
             </button>
 
-            @if (isLoggedIn && userRole == "Admin")
+            @if (isLoggedIn && (userRole == "Admin" || userRole == "POD" || userRole == "Doctor"))
             {
                 <div class="dropdown">
                     <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">

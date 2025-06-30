@@ -1,15 +1,15 @@
-﻿using HospitalQueueSystem.Domain.Interfaces;
+﻿
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
-using HospitalQueueSystem.Shared.Utilities;
 using Microsoft.AspNetCore.Authorization;
-using HospitalQueueSystem.Application.CommandModel;
 using MediatR;
-using HospitalQueueSystem.Application.DTO;
+using HQMS.Infrastructure.Data;
+using HQMS.Domain.Interfaces;
+using HQMS.Application.DTO;
+using HQMS.Domain.Entities;
+using HQMS.Application.CommandModel;
 
 namespace HospitalQueueSystem.WebAPI.Controllers
 {
@@ -88,22 +88,6 @@ namespace HospitalQueueSystem.WebAPI.Controllers
                     message = result.Message
                 });
             }
-
-            //var response = new ResponseResultDto<TokenDto>
-            //{
-            //    Succeeded = result.Succeeded,
-            //    Message = result.Message,
-            //    Data = new TokenDto
-            //    {
-            //        Token = ((dynamic?)result.Data)?.Token,
-            //        //RefreshToken = ((dynamic?)result.Data)?.RefreshToken,
-            //        Expiration = ((dynamic?)result.Data)?.Expiration,
-            //        // UserId and Role can be added if needed
-            //        //UserId = ((dynamic?)result.Data)?.UserId,
-            //        //Role = ((dynamic?)result.Data)?.Role
-
-            //    }
-            //};
 
             var response = new ResponseResultDto<TokenDto>
             {

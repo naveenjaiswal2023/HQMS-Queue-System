@@ -1,10 +1,8 @@
-﻿using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Application.Handlers;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿
 using HQMS.API.Application.CommandModel;
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Events;
+using HQMS.Application.Common;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

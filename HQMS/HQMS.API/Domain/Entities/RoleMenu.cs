@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using HQMS.Domain.Entities.Common;
+using Microsoft.AspNetCore.Identity;
 
 namespace HQMS.API.Domain.Entities
 {
@@ -9,8 +10,9 @@ namespace HQMS.API.Domain.Entities
         public Guid MenuId { get; private set; }
 
         // Navigation Properties
-        public virtual Menu Menu { get; private set; }
+        
         public virtual ApplicationRole Role { get; private set; }
+        public virtual Menu Menu { get; private set; }
 
         // Required by EF Core
         private RoleMenu() { }

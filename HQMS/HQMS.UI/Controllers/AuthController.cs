@@ -1,5 +1,6 @@
-﻿using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
+﻿
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
-namespace HospitalQueueSystem.Web.Controllers
+namespace HQMS.Web.Controllers
 {
     public class AuthController : Controller
     {

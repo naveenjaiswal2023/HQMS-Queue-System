@@ -1,13 +1,15 @@
 ﻿//using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
+
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
+using HQMS.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
-namespace HospitalQueueSystem.Web.Services
+namespace HQMS.Web.Services
 {
     public class PatientService : IPatientService
     {

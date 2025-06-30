@@ -1,25 +1,23 @@
 ﻿using AspNetCoreRateLimit;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
-using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Application.DTO;
-using HospitalQueueSystem.Application.Handlers;
-using HospitalQueueSystem.Application.Services;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Data;
-using HospitalQueueSystem.Infrastructure.Events;
-using HospitalQueueSystem.Infrastructure.Repositories;
-using HospitalQueueSystem.Infrastructure.Seed;
-using HospitalQueueSystem.Infrastructure.SignalR;
-using HospitalQueueSystem.Shared.Utilities;
-using HospitalQueueSystem.WebAPI.Controllers;
+using HQMS.Application.Common;
+using HQMS.Application.Handlers;
+using HQMS.Domain.Entities;
+using HQMS.Domain.Events;
+using HQMS.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
+using HQMS.Infrastructure.Events;
+using HQMS.Infrastructure.SignalR;
+using HQMS.Shared.Utilities;
+using HQMS.WebAPI.Controllers;
 using HospitalQueueSystem.WebAPI.Middleware;
+using HQMS.API.Application;
 using HQMS.API.Application.DTO;
 using HQMS.API.Application.Services;
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.API.Infrastructure;
 using HQMS.API.Infrastructure.Repositories;
 using HQMS.API.WebAPI.Controllers;
 using HQMS.Infrastructure.Repositories;
@@ -33,66 +31,102 @@ using Polly;
 using Serilog;
 using Serilog.Events;
 using System.Text;
+using HQMS.Application.DTO;
+using HQMS.Infrastructure.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bind appsettings.json
-builder.Configuration
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true);
-
-builder.Services.Configure<MaintenanceModeOptionsDto>(
-    builder.Configuration.GetSection("MaintenanceMode"));
-
-builder.Services.Configure<ExternalApiOptions>(
-    builder.Configuration.GetSection("ExternalApi"));
-
-var environment = builder.Environment.EnvironmentName;
-var isDevelopment = builder.Environment.IsDevelopment();
-
-// 1. Load base + environment-specific config
+// Bind base + environment-specific appsettings
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-if (!builder.Environment.IsDevelopment())
+var environment = builder.Environment;
+var isDevelopment = environment.IsDevelopment();
+
+// Add Azure Key Vault only in non-dev environments
+if (!isDevelopment)
 {
-    // 2. Load Key Vault in non-dev environments
     var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
     if (!string.IsNullOrEmpty(keyVaultUrl))
     {
-        var credential = new DefaultAzureCredential();
-        builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+        try
+        {
+            var credential = new DefaultAzureCredential();
+            builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), credential);
+            Console.WriteLine("✅ Azure Key Vault loaded.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to load Azure Key Vault: {ex.Message}");
+        }
+    }
+    else
+    {
+        Console.WriteLine("ℹ️ Azure Key Vault URL not configured.");
     }
 }
 
-// 3. Use final configuration
+// Extract settings after full config is loaded
 var configuration = builder.Configuration;
-// 4. Get secrets from Key Vault or appsettings.Development.json
-var azureServiceBusConnectionString = configuration["AzureServiceBusConnectionString"];
 var blobStorageConnectionString = configuration["BlobStorageConnectionString"];
 var blobContainerName = configuration["Logging:BlobStorage:ContainerName"];
 var dbPassword = configuration["QmsDbPassword"];
 var connTemplate = configuration.GetConnectionString("DefaultConnection");
 var actualConnectionString = connTemplate?.Replace("_QmsDbPassword_", dbPassword);
+var azureServiceBusConnectionString = configuration["AzureServiceBusConnectionString"];
+// Bind strongly typed configs
+builder.Services.Configure<MaintenanceModeOptionsDto>(
+    configuration.GetSection("MaintenanceMode"));
 
-// Configure Serilog with Azure Blob Storage
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .WriteTo.Console()
-    .WriteTo.AzureBlobStorage(
-        connectionString: blobStorageConnectionString,
-        storageContainerName: blobContainerName,
-        storageFileName: "hqms-api-log-{yyyyMMdd}.txt",
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
-        restrictedToMinimumLevel: LogEventLevel.Information)
-    .CreateLogger();
+builder.Services.Configure<ExternalApiOptions>(
+    configuration.GetSection("ExternalApi"));
 
-// Use Serilog as the app's logger
-builder.Host.UseSerilog();
+// Register app services
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(configuration);
+
+// Configure Serilog logging
+try
+{
+    builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+    {
+        loggerConfiguration.MinimumLevel.Information()
+            .WriteTo.Console();
+
+        if (isDevelopment)
+        {
+            loggerConfiguration.WriteTo.File(
+                path: "Logs/hqms-api-log-.txt",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
+                rollingInterval: RollingInterval.Day,
+                restrictedToMinimumLevel: LogEventLevel.Information);
+            Console.WriteLine("📄 Serilog writing to local file (Development).");
+        }
+        else
+        {
+            loggerConfiguration.WriteTo.AzureBlobStorage(
+                connectionString: blobStorageConnectionString,
+                storageContainerName: blobContainerName,
+                storageFileName: "hqms-api-log-{yyyyMMdd}.txt",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
+                restrictedToMinimumLevel: LogEventLevel.Information);
+            Console.WriteLine("☁️ Serilog writing to Azure Blob Storage (Production).");
+        }
+
+        loggerConfiguration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services);
+    });
+
+    Console.WriteLine("✅ Serilog configured.");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"❌ Serilog configuration failed: {ex.Message}");
+}
 
 // Add environment variables
 builder.Configuration.AddEnvironmentVariables();
@@ -173,16 +207,6 @@ builder.Services.AddSingleton(new List<TopicSubscriptionPair>
     new TopicSubscriptionPair { TopicName = "doctor-queue", SubscriptionName = "doctor-queue-subscription" }
 });
 
-// Register other services
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<PatientController>();
-builder.Services.AddScoped<RolesController>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IRepository<Patient>, PatientRepository>();
-builder.Services.AddScoped<IRepository<Menu>, MenuRepository>();
-builder.Services.AddScoped<IRoleMenuRepository, RoleMenuRepository >();
-//builder.Services.AddScoped<IQueueRepository, QueueRepository>();
-
 // Event Handlers
 builder.Services.AddScoped<DoctorQueueCreatedEventHandler>();
 builder.Services.AddMediatR(cfg =>
@@ -190,43 +214,21 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssemblyContaining<RegisterPatientCommandHandler>();
 });
 
-// Azure Service Bus Publisher & Subscriber
-builder.Services.AddHostedService<AzureBusBackgroundService>();
-builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
-
-builder.Services.AddHostedService<HospitalDataSyncService>();
-
-// Register IHttpContextAccessor (for accessing user info in services)
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddScoped<IUserContextService, UserContextService>();
-
-// SignalR
-builder.Services.AddSignalR();
-builder.Services.AddSingleton<INotificationService, NotificationService>();
-
-// In-Memory Caching
-builder.Services.AddMemoryCache(); // Register IMemoryCache
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration["Redis:ConnectionString"];
-});
-
 // Rate Limiting
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
-builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>((sp, client) =>
-{
-    var config = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
-    client.BaseAddress = new Uri(config.BaseUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-})
-.AddTransientHttpErrorPolicy(policyBuilder =>
-    policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-.AddTransientHttpErrorPolicy(policyBuilder =>
-    policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+//builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>((sp, client) =>
+//{
+//    var config = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
+//    client.BaseAddress = new Uri(config.BaseUrl);
+//    client.DefaultRequestHeaders.Add("Accept", "application/json");
+//})
+//.AddTransientHttpErrorPolicy(policyBuilder =>
+//    policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
+//.AddTransientHttpErrorPolicy(policyBuilder =>
+//    policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
 // CORS
 
@@ -288,7 +290,7 @@ builder.Services.AddSwaggerGen(options =>
 
 // Controllers
 builder.Services.AddControllers();
-
+builder.Services.AddHealthChecks();
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -335,9 +337,17 @@ app.UseAuthorization();
 
 // 🧭 Endpoints (final step - actual request processing)
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapHub<NotificationHub>("/NotificationHub");
 app.MapGet("/", () => Results.Ok("🏥 Hospital Queue System API is running"));
 
-app.Run();
+// Database migration
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.Migrate();
+}
+
+    app.Run();
 
 public partial class Program { }  // This partial class is needed for WebApplicationFactory<T>

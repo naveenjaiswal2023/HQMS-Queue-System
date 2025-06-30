@@ -1,8 +1,8 @@
-﻿using HospitalQueueSystem.Domain.Events;
+﻿
+using HQMS.Domain.Events;
 using MediatR;
-using Microsoft.Azure.Amqp.Framing;
 
-namespace HospitalQueueSystem.Application.CommandModel
+namespace HQMS.Application.CommandModel
 {
     public class UpdatePatientCommand : IRequest<bool>
     {
@@ -10,7 +10,8 @@ namespace HospitalQueueSystem.Application.CommandModel
         public string Name { get; }
         public int Age { get; }
         public string Gender { get; }
-        public string Department { get; }
+
+        public Guid DepartmentId { get; } // ✅ Updated
 
         public string PhoneNumber { get; }
         public string Email { get; }
@@ -19,39 +20,51 @@ namespace HospitalQueueSystem.Application.CommandModel
         public Guid HospitalId { get; }
         public Guid DoctorId { get; }
 
-        public DateTime UpdatedAt { get; }= DateTime.UtcNow; // Default to current time
+        public DateTime UpdatedAt { get; } = DateTime.UtcNow;
 
-        public UpdatePatientCommand(string patientId, string name, int age, string gender, string department, string phoneNumber, string emailId, string address, string bloodGroup, Guid hospitalId, Guid doctorId,DateTime updatedAt)
+        public UpdatePatientCommand(
+            string patientId,
+            string name,
+            int age,
+            string gender,
+            Guid departmentId,                  // ✅ Updated
+            string phoneNumber,
+            string emailId,
+            string address,
+            string bloodGroup,
+            Guid hospitalId,
+            Guid doctorId,
+            DateTime updatedAt)
         {
             PatientId = patientId;
             Name = name;
             Age = age;
             Gender = gender;
-            Department = department;
+            DepartmentId = departmentId;        // ✅ Updated
             PhoneNumber = phoneNumber;
             Email = emailId;
             Address = address;
             BloodGroup = bloodGroup;
             HospitalId = hospitalId;
             DoctorId = doctorId;
-            UpdatedAt = updatedAt; // Capture the time of update
+            UpdatedAt = updatedAt;
         }
 
-        // Optional constructor overload for convenience if you're passing an event/model
+        // ✅ Constructor from PatientUpdatedEvent
         public UpdatePatientCommand(PatientUpdatedEvent patient)
         {
-            PatientId = patient.PatientId.ToString(); // Fix: Convert Guid to string
+            PatientId = patient.PatientId.ToString();
             Name = patient.Name;
             Age = patient.Age;
             Gender = patient.Gender;
-            Department = patient.Department;
+            DepartmentId = patient.DepartmentId; // ✅ Updated
             PhoneNumber = patient.PhoneNumber;
             Email = patient.Email;
             Address = patient.Address;
             BloodGroup = patient.BloodGroup;
             HospitalId = patient.HospitalId;
             DoctorId = patient.DoctorId;
-            UpdatedAt=patient.UpdatedAt; // Use the UpdatedAt from the event
+            UpdatedAt = patient.UpdatedAt;
         }
     }
 }

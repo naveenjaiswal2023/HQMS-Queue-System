@@ -12,7 +12,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    @* <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css"> *@
     <link href="~/css/site.css" rel="stylesheet" />
 
     <!-- JS Files -->
@@ -86,10 +86,10 @@
 </head>
 <body>
 
-    @Html.Partial("_Header")
+    <partial name="_Header" />
 
     <div id="wrapper">
-        @Html.Partial("_Sidebar")
+        <partial name="_Sidebar" />
 
         <div id="page-content-wrapper">
             <main class="container-fluid p-4">
@@ -98,7 +98,7 @@
         </div>
     </div>
 
-    @Html.Partial("_Footer")
+    <partial name="_Footer" />
 
     <script>
         document.getElementById("toggleTheme").addEventListener("click", () => {
@@ -115,4 +115,3 @@
     @RenderSection("Scripts", required: false)
 </body>
 </html>
-

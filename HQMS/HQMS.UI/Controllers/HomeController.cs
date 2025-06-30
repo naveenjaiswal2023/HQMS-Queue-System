@@ -14,11 +14,11 @@ namespace HospitalQueueSystem.Web.Controllers
             _menuService = menuService;
         }
 
-        public async Task<IActionResult> Index()
-        {
-            var menus = await _menuService.GetMenuHierarchyAsync();
-            ViewBag.Menus = menus;
-            return View();
-        }
+        //public async Task<IActionResult> Index()
+        //{
+        //    var menus = await _menuService.GetMenuHierarchyAsync();
+        //    ViewBag.Menus = menus;
+        //    return View();
+        //}
     }
 }

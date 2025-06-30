@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace HospitalQueueSystem.Infrastructure.Data
+namespace HQMS.Infrastructure.Data
 {
     public class ApplicationUser : IdentityUser
     {

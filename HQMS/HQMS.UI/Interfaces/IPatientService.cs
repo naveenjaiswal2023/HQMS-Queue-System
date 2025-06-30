@@ -1,6 +1,6 @@
-﻿using HospitalQueueSystem.Web.Models;
+﻿using HQMS.Web.Models;
 
-namespace HospitalQueueSystem.Web.Interfaces
+namespace HQMS.Web.Interfaces
 {
     public interface IPatientService
     {

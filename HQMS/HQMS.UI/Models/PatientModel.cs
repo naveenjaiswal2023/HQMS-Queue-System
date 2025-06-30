@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace HospitalQueueSystem.Web.Models
+namespace HQMS.Web.Models
 {
     public class PatientModel
     {
@@ -40,5 +40,8 @@ namespace HospitalQueueSystem.Web.Models
 
         [Required(ErrorMessage = "Doctor is required")]
         public Guid DoctorId { get; set; }
+        public string DepartmentName { get; set; }
+        public string HospitalName { get; set; }
+        public string DoctorName { get; set; }
     }
 }

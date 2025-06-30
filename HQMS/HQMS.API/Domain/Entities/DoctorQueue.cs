@@ -1,7 +1,7 @@
 ﻿using HQMS.API.Domain.Entities;
 using System.Numerics;
 
-namespace HospitalQueueSystem.Domain.Entities
+namespace HQMS.Domain.Entities
 {
     public class DoctorQueue
     {

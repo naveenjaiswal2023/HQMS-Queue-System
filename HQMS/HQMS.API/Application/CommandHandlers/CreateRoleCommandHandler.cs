@@ -1,7 +1,7 @@
 ﻿using HQMS.API.Application.CommandModel;
 using HQMS.API.Domain.Entities; // ApplicationRole
 using HQMS.API.Domain.Events;
-using HospitalQueueSystem.Application.Common;
+using HQMS.Application.Common;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;

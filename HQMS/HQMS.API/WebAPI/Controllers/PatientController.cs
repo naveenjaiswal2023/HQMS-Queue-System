@@ -1,14 +1,11 @@
 ﻿using Azure.Messaging.ServiceBus;
-using HospitalQueueSystem.Application.CommandModel;
-using HospitalQueueSystem.Application.Commands;
-using HospitalQueueSystem.Application.DTO;
-using HospitalQueueSystem.Application.Queries;
-using HospitalQueueSystem.Application.Services;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
 using HQMS.API.Application.QuerieModel;
+using HQMS.API.Application.QueriesModel;
 using HQMS.API.Domain.Entities;
+using HQMS.Application.CommandModel;
+using HQMS.Application.Commands;
+using HQMS.Application.Queries;
+using HQMS.Domain.Events;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -16,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace HospitalQueueSystem.WebAPI.Controllers
+namespace HQMS.WebAPI.Controllers
 {
     [Authorize]
     [Route("api/[controller]")]
@@ -33,14 +30,14 @@ namespace HospitalQueueSystem.WebAPI.Controllers
         }
 
         [HttpPost("RegisterPatient")]
-        public async Task<IActionResult> RegisterPatient([FromBody] PatientRegisteredEvent model)
+        public async Task<IActionResult> RegisterPatient([FromBody] RegisterPatientCommand model)
         {
             try
             {
                 if (model == null ||
                     string.IsNullOrWhiteSpace(model.Name) ||
                     string.IsNullOrWhiteSpace(model.Gender) ||
-                    string.IsNullOrWhiteSpace(model.Department) ||
+                    model.DepartmentId == Guid.Empty ||
                     model.Age <= 0)
                 {
                     return BadRequest(new ApiResponse<string>
@@ -50,7 +47,7 @@ namespace HospitalQueueSystem.WebAPI.Controllers
                     });
                 }
 
-                var command = new RegisterPatientCommand(model.Name, model.Age, model.Gender, model.Department, model.PhoneNumber,model.Email,model.Address,model.BloodGroup,model.HospitalId,model.DoctorId);
+                var command = new RegisterPatientCommand(model.Name, model.Age, model.Gender, model.DepartmentId, model.PhoneNumber,model.Email,model.Address,model.BloodGroup,model.HospitalId,model.DoctorId);
                 var result = await _mediator.Send(command);
 
                 if (result)

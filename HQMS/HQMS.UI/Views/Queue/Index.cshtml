@@ -1,0 +1,85 @@
+﻿@using Azure.Core
+@model List<HQMS.UI.Models.QueueDashboardItemDto>
+@using HQMS.UI.Enum;
+
+@{
+    ViewData["Title"] = "Queue Dashboard";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="hospitalId" class="form-control" value="@Context.Request.Query["hospitalId"]" placeholder="Hospital ID" />
+            <input type="text" name="departmentId" class="form-control" value="@Context.Request.Query["departmentId"]" placeholder="Department ID" />
+            <input type="text" name="doctorId" class="form-control" value="@Context.Request.Query["doctorId"]" placeholder="Doctor ID" />
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </form>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body table-responsive p-0">
+            <table class="table table-striped table-hover align-middle datatables" id="patientsTable">
+                <thead class="table-success text-white">
+                    <tr>
+                        <th class="text-nowrap">#</th>
+                        <th>Queue #</th>
+                        <th>Patient</th>
+                        <th>Appointment</th>
+                        <th>Department</th>
+                        <th>Doctor</th>
+                        <th>Hospital</th>
+                        <th>Status</th>
+                        <th>Action</th> <!-- 👈 New -->
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        var idx = 1;
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td></td>
+                                <td>@item.QueueNumber</td>
+                                <td>@item.PatientName</td>
+                                <td>@item.AppointmentTime.ToString("hh:mm tt")</td>
+                                <td>@item.Department</td>
+                                <td>@item.DoctorName</td>
+                                <td>@item.HospitalName</td>
+                                <td>
+                                    <span class="badge
+                                         @(item.Status == QueueStatus.Pending ? "bg-secondary" :
+                                        item.Status == QueueStatus.InProgress ? "bg-info text-dark" :
+                                        item.Status == QueueStatus.Completed ? "bg-success" :
+                                        item.Status == QueueStatus.Cancelled ? "bg-danger" :
+                                        item.Status == QueueStatus.Called ? "bg-primary" :
+                                        item.Status == QueueStatus.Snooze ? "bg-warning text-dark" : "bg-light")">
+                                        @item.Status
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <form method="post" asp-action="CallQueue" asp-controller="Queue">
+                                        <input type="hidden" name="queueNumber" value="@item.QueueNumber" />
+                                        <button type="submit"
+                                                class="btn btn-sm @(item.Status == QueueStatus.Called ? "btn-secondary" : "btn-success")">
+                                            <i class="bi @(item.Status == QueueStatus.Called ? "bi-check2-circle" : "bi-megaphone-fill")"></i>
+                                            @(item.Status == QueueStatus.Called ? "Called" : "Call")
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">No queue data found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

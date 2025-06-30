@@ -1,85 +1,74 @@
-﻿using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Interfaces;
-using HospitalQueueSystem.Infrastructure.Repositories;
-using HQMS.API.Domain.Entities;
+﻿using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
 using HQMS.API.Infrastructure.Repositories;
+using HQMS.Domain.Entities;
+using HQMS.Domain.Interfaces;
 using HQMS.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System;
 using System.Data;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace HospitalQueueSystem.Infrastructure.Data
+namespace HQMS.Infrastructure.Data
 {
-    public class UnitOfWork : IUnitOfWork
+    public sealed class UnitOfWork : IUnitOfWork, IDisposable, IAsyncDisposable
     {
         private readonly ApplicationDbContext _dbContext;
-        private IDbContextTransaction _transaction;
-        private IRepository<Menu> _menuRepository;
-        private IRoleMenuRepository _roleMenuRepository;
+        private IDbContextTransaction? _transaction;
 
-        private IRepository<Patient> _patientRepository;
-        
-        private IQueueRepository _queueRepository;
-        private IRepository<DoctorQueue> _doctorQueueRepository;
-        public IRepository<Patient> Patients { get; }
-        public IRepository<Menu> Menus { get; }
-        public IRepository<RoleMenu> RoleMenus { get; }
-        public IRepository<DoctorQueue> Queues { get; }
-        public IRepository<QueueEntry> QueuesEntries { get; }
-        
-
-        public ApplicationDbContext Context => _dbContext;
-
-        public IRepository<Patient> PatientRepository
-        {
-            get
-            {
-                if (_patientRepository == null)
-                    _patientRepository = new PatientRepository(_dbContext);
-                return _patientRepository;
-            }
-        }
-        public IRepository<Menu> MenuRepository
-        {
-            get
-            {
-                if (_menuRepository == null)
-                    _menuRepository = new MenuRepository(_dbContext);
-                return _menuRepository;
-            }
-        }
-        public IRoleMenuRepository RoleMenuRepository
-        {
-            get
-            {
-                if (_roleMenuRepository == null)
-                    _roleMenuRepository = new RoleMenuRepository(_dbContext);
-                return _roleMenuRepository;
-            }
-        }
-
-        //public IRepository<Patient> PatientRepository => throw new NotImplementedException();
-
-        //public IRepository<QueueEntry> QueueRepository => throw new NotImplementedException();
-
-        IQueueRepository IUnitOfWork.QueueRepository => throw new NotImplementedException();
-
-        // public IPatientRepository Patients => throw new NotImplementedException();
-
+        // Lazy repositories ---------------------------------------------------
+        private Lazy<IDoctorRepository> _doctorRepo;
+        private Lazy<IAppointmentRepository> _appointmentRepo;
+        private Lazy<IRepository<Patient>> _patientRepo;
+        private Lazy<IRepository<Menu>> _menuRepo;
+        private Lazy<IRoleMenuRepository> _roleMenuRepo;
+        private Lazy<IRolePermissionRepository> _rolePermissionRepo;
+        private Lazy<IQueueRepository> _queueRepo;
+        private Lazy<IDoctorQueueRepository> _doctorQueueRepo;
+        // private Lazy<IRepository<QueueEntry>>   _queueEntryRepo;
 
         public UnitOfWork(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
-            Patients = new PatientRepository(_dbContext);
-            Queues = new QueueRepository(dbContext) as IRepository<DoctorQueue>;
-            QueuesEntries = new QueueRepository(dbContext) as IRepository<QueueEntry>;
+
+            _doctorRepo = new(() => new DoctorRepository(_dbContext));
+            _appointmentRepo = new(() => new AppointmentRepository(_dbContext));
+            _patientRepo = new(() => new PatientRepository(_dbContext));
+            _menuRepo = new(() => new MenuRepository(_dbContext));
+            _roleMenuRepo = new(() => new RoleMenuRepository(_dbContext));
+            _rolePermissionRepo = new(() => new RolePermissionRepository(_dbContext));
+            _queueRepo = new(() => new QueueRepository(_dbContext));
+            _doctorQueueRepo = new(() => new DoctorQueueRepository(_dbContext));
+            //_queueEntryRepo      = new(() => new GenericRepository<QueueEntry>(_dbContext));
         }
 
-        // Start a new transaction
+        // --------------------------------------------------------------------
+        public ApplicationDbContext Context => _dbContext;
+
+        // Repository accessors -----------------------------------------------
+        public IDoctorRepository DoctorRepository => _doctorRepo.Value;
+        public IAppointmentRepository AppointmentRepository => _appointmentRepo.Value;
+        public IRepository<Patient> PatientRepository => _patientRepo.Value;
+        public IRepository<Menu> MenuRepository => _menuRepo.Value;
+        public IRoleMenuRepository RoleMenuRepository => _roleMenuRepo.Value;
+        public IRolePermissionRepository RolePermissionRepository => _rolePermissionRepo.Value;
+        public IQueueRepository QueueRepository => _queueRepo.Value;
+        public IDoctorQueueRepository DoctorQueueRepository => _doctorQueueRepo.Value;
+        // public IRepository<QueueEntry> QueueEntryRepository    => _queueEntryRepo.Value;
+        
+        // --------------------------------------------------------------------
+
+        #region Commit / Save
+        public Task<int> SaveChangesAsync(CancellationToken ct = default)
+            => _dbContext.SaveChangesAsync(ct);   // Domain events dispatched inside DbContext
+        #endregion
+
+        #region Transactions  (matches IUnitOfWork signatures)
         public async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
         {
-            if (_transaction != null)
+            if (_transaction is not null)
             {
                 await _transaction.CommitAsync();
                 await _transaction.DisposeAsync();
@@ -92,43 +81,55 @@ namespace HospitalQueueSystem.Infrastructure.Data
         {
             try
             {
-                if (_transaction != null)
-                {
+                if (_transaction is not null)
                     await _transaction.CommitAsync();
-                }
             }
-            catch (Exception)
+            catch
             {
                 await RollbackTransactionAsync();
                 throw;
+            }
+            finally
+            {
+                if (_transaction is not null)
+                    await _transaction.DisposeAsync();
+                _transaction = null;
             }
         }
 
         public async Task RollbackTransactionAsync()
         {
-            if (_transaction != null)
+            if (_transaction is not null)
             {
                 await _transaction.RollbackAsync();
+                await _transaction.DisposeAsync();
+                _transaction = null;
             }
         }
 
-        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
+        /// <summary>
+        /// Convenience: save + commit in a single call.
+        /// </summary>
+        public async Task CompleteTransactionAsync(CancellationToken ct = default)
         {
-            try
-            {
-                return await _dbContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while saving changes.", ex);
-            }
+            await SaveChangesAsync(ct);
+            await CommitTransactionAsync();
+        }
+        #endregion
+
+        #region Disposal
+        public async ValueTask DisposeAsync()
+        {
+            if (_transaction is not null)
+                await _transaction.DisposeAsync();
+
+            await _dbContext.DisposeAsync();
         }
 
-        public void Dispose()
+        void IDisposable.Dispose()
         {
-            _transaction?.Dispose();
-            _dbContext.Dispose();
+            DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
+        #endregion
     }
-
 }

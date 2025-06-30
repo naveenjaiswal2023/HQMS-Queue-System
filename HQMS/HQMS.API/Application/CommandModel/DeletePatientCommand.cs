@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace HospitalQueueSystem.Application.CommandModel
+namespace HQMS.Application.CommandModel
 {
     public class DeletePatientCommand : IRequest<bool>
     {

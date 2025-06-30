@@ -1,5 +1,6 @@
-﻿using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
+﻿
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;

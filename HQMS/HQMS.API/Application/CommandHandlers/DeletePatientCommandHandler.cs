@@ -1,12 +1,9 @@
-﻿using HospitalQueueSystem.Application.CommandModel;
-using HospitalQueueSystem.Application.Commands;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿
+using HQMS.Application.CommandModel;
+using HQMS.Application.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Application.Common;
 
 namespace HospitalQueueSystem.Application.Handlers
 {
@@ -45,13 +42,13 @@ namespace HospitalQueueSystem.Application.Handlers
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 // Now publish the domain event
-                foreach (var domainEvent in patient.DomainEvents)
-                {
-                    await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
-                }
+                //foreach (var domainEvent in patient.DomainEvents)
+                //{
+                //    await _domainEventPublisher.PublishAsync(domainEvent, cancellationToken);
+                //}
 
                 // Clear domain events after publishing
-                patient.ClearDomainEvents();
+                //patient.ClearDomainEvents();
 
                 return true;
             }

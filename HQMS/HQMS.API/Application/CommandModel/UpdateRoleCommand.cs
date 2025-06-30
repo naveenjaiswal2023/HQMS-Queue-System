@@ -1,4 +1,4 @@
-﻿using HospitalQueueSystem.Domain.Events;
+﻿
 using HQMS.API.Domain.Events;
 using MediatR;
 using Microsoft.AspNetCore.Identity;

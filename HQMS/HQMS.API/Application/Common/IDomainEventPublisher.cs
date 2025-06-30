@@ -1,7 +1,6 @@
-﻿using HospitalQueueSystem.Domain.Common;
-using HospitalQueueSystem.Domain.Events;
+﻿using HQMS.Domain.Common;
 
-namespace HospitalQueueSystem.Application.Common
+namespace HQMS.Application.Common
 {
     public interface IDomainEventPublisher
     {

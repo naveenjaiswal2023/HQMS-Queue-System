@@ -1,6 +1,4 @@
-﻿using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
-using HQMS.Test.Services;
+﻿using HQMS.Test.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

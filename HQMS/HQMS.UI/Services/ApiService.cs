@@ -1,4 +1,4 @@
-﻿using HospitalQueueSystem.Web.Models;
+﻿using HQMS.Web.Models;
 using Microsoft.Extensions.Options;
 using System.Net.Http;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web.Helpers;
 
-namespace HospitalQueueSystem.Web.Services
+namespace HQMS.Web.Services
 {
     public class ApiService
     {

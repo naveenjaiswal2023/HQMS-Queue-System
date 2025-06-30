@@ -1,58 +1,49 @@
-﻿using HospitalQueueSystem.Application.Queries;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿using HQMS.API.Domain.Interfaces;
+using HQMS.Application.Queries;
+using HQMS.Domain.Events;
+using HQMS.Infrastructure.Repositories;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using MediatR;
-using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 
-namespace HospitalQueueSystem.Application.QueryHandlers
+namespace HQMS.Application.QueryHandlers
 {
     public class GetAllPatientsQueryHandler : IRequestHandler<GetAllPatientsQuery, List<PatientRegisteredEvent>>
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IDistributedCache _cache;
+        private readonly ICacheService _cacheService;
         private readonly ILogger<GetAllPatientsQueryHandler> _logger;
         private const string PatientListCacheKey = "Patient_CacheKey";
+        private readonly IPatientRepository _patientRepository;
 
-        public GetAllPatientsQueryHandler(IUnitOfWork unitOfWork, IDistributedCache cache, ILogger<GetAllPatientsQueryHandler> logger)
+        public GetAllPatientsQueryHandler(
+            IUnitOfWork unitOfWork,
+            ICacheService cacheService,
+            ILogger<GetAllPatientsQueryHandler> logger, IPatientRepository patientRepository)
         {
             _unitOfWork = unitOfWork;
-            _cache = cache;
+            _cacheService = cacheService;
             _logger = logger;
+            _patientRepository = patientRepository;
         }
 
         public async Task<List<PatientRegisteredEvent>> Handle(GetAllPatientsQuery request, CancellationToken cancellationToken)
         {
             try
             {
-                //var cachedData = await _cache.GetStringAsync(PatientListCacheKey);
-                //if (!string.IsNullOrEmpty(cachedData))
-                //{
-                //    _logger.LogInformation("Returning patient list from Redis cache.");
-                //    return JsonSerializer.Deserialize<List<PatientRegisteredEvent>>(cachedData);
-                //}
+                // 1. Try from Cache
+                var cachedPatients = await _cacheService.GetAsync<List<PatientRegisteredEvent>>(PatientListCacheKey);
+                if (cachedPatients != null)
+                {
+                    _logger.LogInformation("Returning patient list from Redis cache.");
+                    return cachedPatients;
+                }
 
-                var patients = await _unitOfWork.Context.Patients
-                    .AsNoTracking()
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new PatientRegisteredEvent(
-                        p.PatientId,
-                        p.Name,
-                        p.Age,
-                        p.Gender,
-                        p.Department,
-                        p.PhoneNumber,
-                        p.Email,
-                        p.Address,
-                        p.BloodGroup,
-                        p.HospitalId,
-                        p.PrimaryDoctorId
-                        
-                    ))
-                    .ToListAsync(cancellationToken);
+                // 2. Fetch from repository
+                var patients = await _patientRepository.GetAllPatientsAsync(cancellationToken);
 
                 if (!patients.Any())
                 {
@@ -60,18 +51,11 @@ namespace HospitalQueueSystem.Application.QueryHandlers
                     return new List<PatientRegisteredEvent>();
                 }
 
-                var serializedPatients = JsonSerializer.Serialize(patients);
-                //await _cache.SetStringAsync(
-                //    PatientListCacheKey,
-                //    serializedPatients,
-                //    new DistributedCacheEntryOptions
-                //    {
-                //        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-                //    });
+                // 3. Cache result
+                await _cacheService.SetAsync(PatientListCacheKey, patients, TimeSpan.FromMinutes(5));
+                _logger.LogInformation("Patient list cached to Redis successfully.");
 
-                //_logger.LogInformation("Patient list cached to Redis successfully.");
-               // return patients;
-               return serializedPatients is not null ? JsonSerializer.Deserialize<List<PatientRegisteredEvent>>(serializedPatients) : new List<PatientRegisteredEvent>();
+                return patients;
             }
             catch (Exception ex)
             {

@@ -1,15 +1,15 @@
 ﻿using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
-using HospitalQueueSystem.Web.Extensions;
-using HospitalQueueSystem.Web.Interfaces;
-using HospitalQueueSystem.Web.Models;
-using HospitalQueueSystem.Web.Services;
 using HQMS.UI.Handlers;
 using HQMS.UI.Interfaces;
 using HQMS.UI.Middlewares;
 using HQMS.UI.Models;
 using HQMS.UI.Services;
+using HQMS.Web.Extensions;
+using HQMS.Web.Interfaces;
+using HQMS.Web.Models;
+using HQMS.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,16 +18,7 @@ using Serilog;
 using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Configure strongly typed settings
-builder.Services.Configure<ApiSettings>(
-    builder.Configuration.GetSection("ApiSettings"));
-
-builder.Services.Configure<SignalRSettings>(builder.Configuration.GetSection("SignalR"));
-
-var environment = builder.Environment.EnvironmentName;
-var isDevelopment = builder.Environment.IsDevelopment();
-
+builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 // 1. Load base + environment-specific config
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -37,7 +28,6 @@ builder.Configuration
 
 if (!builder.Environment.IsDevelopment())
 {
-    // Add Azure Key Vault secrets if VaultUrl is configured
     var keyVaultUrl = builder.Configuration["AzureKeyVault:VaultUrl"];
     if (!string.IsNullOrEmpty(keyVaultUrl))
     {
@@ -58,29 +48,43 @@ if (!builder.Environment.IsDevelopment())
     }
 }
 
-// Final configuration object (after Key Vault is loaded)
 var configuration = builder.Configuration;
+var environment = builder.Environment;
 
 // Extract secrets
 var blobStorageConnectionString = configuration["BlobStorageConnectionString"];
 var blobContainerName = configuration["Logging:BlobStorage:ContainerName"];
 
-// Configure Serilog
 try
 {
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
     {
-        loggerConfiguration
-            .MinimumLevel.Information()
-            .WriteTo.Console()
-            .WriteTo.AzureBlobStorage(
+        loggerConfiguration.MinimumLevel.Information()
+            .WriteTo.Console();
+
+        if (environment.IsDevelopment())
+        {
+            loggerConfiguration.WriteTo.File(
+                path: "Logs/hqms-api-log-.txt",
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
+                rollingInterval: RollingInterval.Day,
+                restrictedToMinimumLevel: LogEventLevel.Information);
+            Console.WriteLine("📄 Serilog writing to local file (Development).");
+        }
+        else
+        {
+            loggerConfiguration.WriteTo.AzureBlobStorage(
                 connectionString: blobStorageConnectionString,
                 storageContainerName: blobContainerName,
                 storageFileName: "hqms-ui-log-{yyyyMMdd}.txt",
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}",
-                restrictedToMinimumLevel: LogEventLevel.Information)
-            .ReadFrom.Configuration(context.Configuration)     //  Required for appsettings.json logging config
-            .ReadFrom.Services(services);                      //  Required to register DiagnosticContext
+                restrictedToMinimumLevel: LogEventLevel.Information);
+            Console.WriteLine("☁️ Serilog writing to Azure Blob Storage (Production).");
+        }
+
+        loggerConfiguration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services);
     });
 
     Console.WriteLine("✅ Serilog configured.");
@@ -104,9 +108,11 @@ builder.Services.AddTransient<AuthorizationHandler>();
 
 builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
-
+builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
+builder.Services.AddScoped<IQueueService, QueueService>();
 
 builder.Services.AddControllersWithViews(options =>
 {

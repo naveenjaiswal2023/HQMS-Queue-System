@@ -10,7 +10,7 @@
     var menus = await MenuService.GetMenuHierarchyAsync();
 }
 
-@if (isLoggedIn && userRole == "Admin" && menus != null)
+@if (isLoggedIn && (userRole == "Admin" || userRole == "POD" || userRole == "Doctor") && menus != null)
 {
     <div class="border-end bg-light" id="sidebar-wrapper">
         <div class="sidebar-heading d-flex justify-content-between align-items-center">

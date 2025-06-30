@@ -1,10 +1,10 @@
-﻿using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿
+using HQMS.Domain.Events;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace HospitalQueueSystem.Application.Services
 {
-    public class PatientQueueCacheService : IPatientCacheService
+    public class PatientQueueCacheService //: IPatientCacheService
     {
         private readonly IMemoryCache _memoryCache;
         private const string CacheKey = "PatientQueue";

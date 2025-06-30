@@ -1,11 +1,10 @@
-﻿using HospitalQueueSystem.Application.Commands;
-using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿using HQMS.API.Domain.Entities;
+using HQMS.Application.Commands;
+using HQMS.Application.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace HospitalQueueSystem.Application.Handlers
+namespace HQMS.Application.Handlers
 {
     public class RegisterPatientCommandHandler : IRequestHandler<RegisterPatientCommand, bool>
     {
@@ -29,13 +28,13 @@ namespace HospitalQueueSystem.Application.Handlers
             {
                 if (string.IsNullOrWhiteSpace(request.Name) ||
                     string.IsNullOrWhiteSpace(request.Gender) ||
-                    string.IsNullOrWhiteSpace(request.Department))
+                    request.DepartmentId == Guid.Empty) // Fix: Check if DepartmentId is an empty Guid instead of using string.IsNullOrWhiteSpace
                 {
                     _logger.LogWarning("Invalid patient data received.");
                     return false;
                 }
 
-                var patient = new Patient(request.Name, request.Age, request.Gender, request.Department, request.PhoneNumber,request.Email,request.Address,request.BloodGroup,request.HospitalId,request.DoctorId);
+                var patient = new Patient(request.Name, request.Age, request.Gender, request.DepartmentId, request.PhoneNumber, request.Email, request.Address, request.BloodGroup, request.HospitalId, request.DoctorId);
                 await _unitOfWork.PatientRepository.AddAsync(patient);
                 _unitOfWork.Context.Patients.Add(patient);
 

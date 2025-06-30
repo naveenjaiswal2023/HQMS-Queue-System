@@ -1,9 +1,6 @@
-﻿using HospitalQueueSystem.Application.CommandModel;
-using HospitalQueueSystem.Application.Commands;
-using HospitalQueueSystem.Application.Common;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Domain.Interfaces;
+﻿
+using HQMS.Application.CommandModel;
+using HQMS.Application.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -46,7 +43,7 @@ namespace HospitalQueueSystem.Application.Handlers
                 //    return false;
                 //}
                 // string phoneNumber, string email, string address, string bloodGroup
-                patient.UpdateDetails(request.Name, request.Age, request.Gender, request.Department,request.PhoneNumber,request.Email,request.Address,request.BloodGroup,request.HospitalId,request.DoctorId,request.UpdatedAt);
+                patient.UpdateDetails(request.Name, request.Age, request.Gender, request.DepartmentId,request.PhoneNumber,request.Email,request.Address,request.BloodGroup,request.HospitalId,request.DoctorId,request.UpdatedAt);
                 var updateCount = await _unitOfWork.PatientRepository.UpdateAsync(patient);
                 if (updateCount == 0)
                 {

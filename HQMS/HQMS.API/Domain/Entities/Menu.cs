@@ -1,4 +1,5 @@
 ﻿using HQMS.API.Domain.Events;
+using HQMS.Domain.Entities.Common;
 
 namespace HQMS.API.Domain.Entities
 {
@@ -14,7 +15,8 @@ namespace HQMS.API.Domain.Entities
         public string PermissionKey { get; private set; }
         public Guid? ParentId { get; private set; }
 
-        public List<RoleMenu> RoleMenus { get; private set; } = new();
+        public virtual ICollection<Permission> Permissions { get; private set; } = new List<Permission>();
+        public virtual ICollection<RoleMenu> RoleMenus { get; private set; } = new List<RoleMenu>();
 
         public Menu(string name, string url, string icon, int orderBy, string permissionKey, Guid? parentId = null)
         {

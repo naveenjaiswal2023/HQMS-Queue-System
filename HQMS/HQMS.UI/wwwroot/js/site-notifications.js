@@ -117,6 +117,10 @@
             case "PatientDeletedEvent":
                 displayMessage = `❌ Patient deleted: ${message.name}`;
                 break;
+            case "PatientQueuedEvent":
+                const appointmentTime = new Date(message.joinedAt).toLocaleString();
+                displayMessage = `📋 Patient queued: Queue #${message.queueNumber}, Appointment at ${appointmentTime}`;
+                break;
             default:
                 displayMessage = `📢 ${eventName}: ${JSON.stringify(message)}`;
                 break;

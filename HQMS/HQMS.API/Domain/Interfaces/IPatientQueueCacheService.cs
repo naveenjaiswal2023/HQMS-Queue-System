@@ -1,6 +1,6 @@
-﻿using HospitalQueueSystem.Domain.Events;
+﻿using HQMS.Domain.Events;
 
-namespace HospitalQueueSystem.Domain.Interfaces
+namespace HQMS.Domain.Interfaces
 {
     public interface IPatientCacheService
     {

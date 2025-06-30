@@ -1,80 +1,107 @@
-﻿using HospitalQueueSystem.Domain.Entities;
-using HQMS.API.Domain.Entities;
+﻿using HQMS.API.Domain.Entities;
+using HQMS.Application.Common;
+using HQMS.Domain.Common;
+using HQMS.Domain.Entities;
+using HQMS.Domain.Entities.Common;
+using HQMS.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Data.Common;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace HospitalQueueSystem.Infrastructure.Data
+namespace HQMS.Infrastructure.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+    public sealed class ApplicationDbContext
+        : IdentityDbContext<ApplicationUser, ApplicationRole, string>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options) { }
+        private readonly IUserContextService _userContext;
+        private readonly IDomainEventPublisher _eventPublisher;
 
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options,
+            IUserContextService userContext,
+            IDomainEventPublisher eventPublisher)
+            : base(options)
+        {
+            _userContext = userContext;
+            _eventPublisher = eventPublisher;
+        }
+        // Dapper support
+        public DbConnection GetConnection() => Database.GetDbConnection();
+
+        // DbSets --------------------------------------------------------------
         public DbSet<DoctorQueue> DoctorQueues { get; set; }
         public DbSet<Patient> Patients { get; set; }
-        public DbSet<QueueEntry> QueueEntries { get; set; }
+        public DbSet<Doctor> Doctors { get; set; }
+        public DbSet<QueueItem> QueueItems { get; set; }
         public DbSet<State> States { get; set; }
         public DbSet<City> Cities { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<DoctorSlot> DoctorSlots { get; set; }
         public DbSet<Hospital> Hospitals { get; set; }
+
         public DbSet<Menu> Menus { get; set; }
         public DbSet<RoleMenu> RoleMenus { get; set; }
-
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
+        // --------------------------------------------------------------------
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            // Apply entity configurations from this assembly
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        }
 
-            // Global shadow property example (CreatedAt)
-            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        public override async Task<int> SaveChangesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            ApplyAuditInfo();
+
+            // 1. Collect domain events BEFORE commit
+            var domainEvents = ChangeTracker.Entries<BaseEntity>()
+                                            .SelectMany(e => e.Entity.DomainEvents)
+                                            .Where(e => e != null)
+                                            .ToList();
+
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            // 2. Clear events AFTER commit
+            foreach (var entity in ChangeTracker.Entries<BaseEntity>())
             {
-                if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
-                {
-                    modelBuilder.Entity(entityType.ClrType)
-                        .Property<DateTime>("CreatedAt");
-                }
+                entity.Entity.ClearDomainEvents();
             }
 
-            // ---------------------------
-            // foreign keys
-            // ---------------------------
+            // 3. Publish events
+            foreach (var domainEvent in domainEvents)
+            {
+                await _eventPublisher.PublishAsync(domainEvent, cancellationToken);
+            }
 
-            modelBuilder.Entity<RoleMenu>()
-            .HasOne(rm => rm.Role)
-            .WithMany(r => r.RoleMenus)
-            .HasForeignKey(rm => rm.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
+            return result;
+        }
 
-            modelBuilder.Entity<Appointment>()
-                .HasOne(a => a.Patient)
-                .WithMany(p => p.Appointments)
-                .HasForeignKey(a => a.PatientId)
-                .OnDelete(DeleteBehavior.Restrict);
+        // --------------------------------------------------------------------
+        private void ApplyAuditInfo()
+        {
+            var user = _userContext.GetUserName() ?? "System";
 
-            modelBuilder.Entity<Appointment>()
-                .HasOne(a => a.Doctor)
-                .WithMany(d => d.Appointments)
-                .HasForeignKey(a => a.DoctorId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Appointment>()
-                .HasOne(a => a.Hospital)
-                .WithMany(h => h.Appointments)
-                .HasForeignKey(a => a.HospitalId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<DoctorQueue>()
-                .HasOne(dq => dq.Doctor)
-                .WithMany(d => d.DoctorQueues)
-                .HasForeignKey(dq => dq.DoctorId);
-
-            // You can add more configurations here if needed
+            foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    entry.Entity.CreatedBy = user;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.ModifiedAt = DateTime.UtcNow;
+                    entry.Entity.ModifiedBy = user;
+                }
+            }
         }
     }
 }

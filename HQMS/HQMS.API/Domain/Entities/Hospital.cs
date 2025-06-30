@@ -1,10 +1,12 @@
-﻿using HospitalQueueSystem.Domain.Entities;
+﻿
+
+using HQMS.Domain.Entities.Common;
 
 namespace HQMS.API.Domain.Entities
 {
     public class Hospital : BaseEntity
     {
-        public Guid Id { get; set; } // Primary key
+        public Guid HospitalId { get; set; } // Primary key
 
         // Basic Info
         public string Name { get; set; } = string.Empty;
@@ -32,6 +34,7 @@ namespace HQMS.API.Domain.Entities
         // Navigation Properties
         public ICollection<Doctor> Doctors { get; set; }
         public ICollection<Patient> Patients { get; set; }
+        public ICollection<Department> Departments { get; set; }
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 }

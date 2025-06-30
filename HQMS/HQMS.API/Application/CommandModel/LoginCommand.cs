@@ -1,8 +1,8 @@
-﻿using HospitalQueueSystem.Application.DTO;
+﻿using HQMS.Application.DTO;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HospitalQueueSystem.Application.CommandModel
+namespace HQMS.Application.CommandModel
 {
     public class LoginCommand : IRequest<ResponseResultDto<object>>
     {

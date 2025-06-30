@@ -1,7 +1,7 @@
-﻿using HospitalQueueSystem.Domain.Interfaces;
+﻿using HQMS.Domain.Interfaces;
 using System.Security.Claims;
 
-namespace HospitalQueueSystem.Shared.Utilities
+namespace HQMS.Shared.Utilities
 {
     public class UserContextService : IUserContextService
     {

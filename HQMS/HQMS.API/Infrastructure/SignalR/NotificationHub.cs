@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
-namespace HospitalQueueSystem.Infrastructure.SignalR
+namespace HQMS.Infrastructure.SignalR
 {
     public class NotificationHub : Hub
     {

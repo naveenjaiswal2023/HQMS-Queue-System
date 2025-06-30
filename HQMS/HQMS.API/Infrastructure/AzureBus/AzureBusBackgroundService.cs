@@ -1,7 +1,8 @@
 ﻿using Azure.Messaging.ServiceBus;
-using HospitalQueueSystem.Domain.Entities;
-using HospitalQueueSystem.Domain.Events;
-using HospitalQueueSystem.Infrastructure.SignalR;
+using HQMS.Domain.Entities;
+using HQMS.Domain.Events;
+using HQMS.Infrastructure.SignalR;
+using HQMS.API.Application.Services;
 using HQMS.API.Domain.Events;
 using HQMS.API.Domain.Interfaces;
 using Microsoft.AspNetCore.SignalR;
@@ -19,7 +20,8 @@ public class AzureBusBackgroundService : BackgroundService
     private readonly IHubContext<NotificationHub> _hubContext;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly List<TopicSubscriptionPair> _topicSubscriptionPairs;
-    private readonly IDistributedCache _cache;
+    //private readonly IDistributedCache _cache;
+    private readonly ICacheService _cache;
     private readonly INotificationService _notificationService;
 
     public AzureBusBackgroundService(
@@ -29,7 +31,7 @@ public class AzureBusBackgroundService : BackgroundService
         IHubContext<NotificationHub> hubContext,
         List<TopicSubscriptionPair> topicSubscriptionPairs,
         ILogger<AzureBusBackgroundService> logger,
-        IDistributedCache cache)
+        ICacheService cache)
     {
         _notificationService = notificationService;
         _client = client;
@@ -89,6 +91,9 @@ public class AzureBusBackgroundService : BackgroundService
                 case nameof(RoleDeletedEvent):
                     await HandleMessage<RoleDeletedEvent>(body, args, "PatientDeletedEvent", subject);
                     break;
+                case nameof(PatientQueuedEvent):
+                    await HandleMessage<PatientQueuedEvent>(body, args, "PatientQueuedEvent", subject);
+                    break;
                 default:
                     _logger.LogWarning("Unknown message subject: {Subject}", subject);
                     await args.DeadLetterMessageAsync(args.Message, "Unknown subject", subject);
@@ -110,9 +115,21 @@ public class AzureBusBackgroundService : BackgroundService
             if (message != null)
             {
                 _logger.LogInformation("Sending notification for subject: {Subject} with message: {@Message}", subject, message);
+                if (subject.Contains("PatientRegistered") || subject.Contains("PatientUpdated"))
+                {
+                    var cacheKey = "Patient_CacheKey"; // or use a constant/shared class
+                    await _cache.RemoveAsync(cacheKey);
+                    _logger.LogInformation("Cache invalidated for key: {CacheKey}", cacheKey);
+                }
+                else if(subject.Contains("PatientRegistered"))
+                {
+                    var cacheKey = "QueueDashboard_CacheKey"; // or use a constant/shared class
+                    await _cache.RemoveAsync(cacheKey);
+                    _logger.LogInformation("Cache invalidated for key: {CacheKey}", cacheKey);
+                }
 
-                // FIX: Call the correct method that matches your JavaScript client
-                await _notificationService.SendNotificationAsync("ReceiveNotification", eventName, message);
+                    // FIX: Call the correct method that matches your JavaScript client
+                    await _notificationService.SendNotificationAsync("ReceiveNotification", eventName, message);
 
                 _logger.LogInformation("SignalR SendAsync completed for event: {EventName}", eventName);
                 await args.CompleteMessageAsync(args.Message);

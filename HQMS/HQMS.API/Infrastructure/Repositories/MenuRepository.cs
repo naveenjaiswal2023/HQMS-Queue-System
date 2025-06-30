@@ -1,6 +1,7 @@
-﻿using HospitalQueueSystem.Infrastructure.Data;
+﻿
 using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Interfaces;
+using HQMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace HQMS.API.Infrastructure.Repositories

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace HospitalQueueSystem.Web.Models
+namespace HQMS.Web.Models
 {
     public class ApiResponse<T>
     {

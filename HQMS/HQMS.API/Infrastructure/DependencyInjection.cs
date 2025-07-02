@@ -39,8 +39,6 @@ namespace HQMS.API.Infrastructure
             });
 
             // 📚 Repositories
-            //services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-            //services.AddScoped<IQueueRepository, QueueRepository>();
             services.AddHostedService<AzureBusBackgroundService>();
             services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 
@@ -65,6 +63,9 @@ namespace HQMS.API.Infrastructure
             services.AddValidatorsFromAssemblyContaining<CreateRoleCommandValidator>();
             services.AddValidatorsFromAssemblyContaining<RegisterPatientCommandValidator>();
             services.AddValidatorsFromAssemblyContaining<UpdatePatientCommandValidator>();
+            services.AddValidatorsFromAssemblyContaining<DepartmentValidator>();
+            services.AddValidatorsFromAssemblyContaining<HospitalValidator>();
+
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<PatientController>();
             services.AddScoped<RolesController>();

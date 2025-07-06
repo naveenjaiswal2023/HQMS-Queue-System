@@ -36,10 +36,10 @@ namespace HQMS.Web.Models
         public string BloodGroup { get; set; }
 
         [Required(ErrorMessage = "Hospital is required")]
-        public Guid HospitalId { get; set; }
+        public Guid? HospitalId { get; set; }
 
         [Required(ErrorMessage = "Doctor is required")]
-        public Guid DoctorId { get; set; }
+        public Guid? DoctorId { get; set; }
         public string DepartmentName { get; set; }
         public string HospitalName { get; set; }
         public string DoctorName { get; set; }

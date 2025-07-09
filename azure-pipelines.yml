@@ -5,14 +5,14 @@ trigger:
 
 variables:
   buildConfiguration: 'Release'
-  azureSubscription: 'hqms-service-connection'
+  azureSubscription: 'sc-hqms'
 
 stages:
 # ----------------------------------
-# CI Stage: Build and Publish Artifacts
+# CI Stage: Build, Test and Publish Artifacts
 # ----------------------------------
 - stage: Build
-  displayName: 'Build and Publish Artifacts'
+  displayName: 'Build, Test and Publish Artifacts'
   jobs:
     - job: Build
       displayName: 'Build Job'
@@ -40,8 +40,22 @@ stages:
           displayName: 'Build Solution'
           inputs:
             command: 'build'
-            projects: '**/*.csproj'
+            projects: '**/HQMS.Test/HQMS.Test.csproj'
             arguments: '--configuration $(buildConfiguration)'
+
+        - task: DotNetCoreCLI@2
+          displayName: 'Run Unit Tests'
+          inputs:
+            command: 'test'
+            projects: '**/*Tests.csproj'
+            arguments: '--configuration $(buildConfiguration) --no-build --logger trx'
+
+        - task: PublishTestResults@2
+          displayName: 'Publish Test Results'
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/TestResults/*.trx'
+            testRunTitle: 'Unit Test Results'
 
         - task: DotNetCoreCLI@2
           displayName: 'Publish API'
@@ -142,19 +156,20 @@ stages:
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
 
 # ----------------------------------
-# CD Stage: Deploy to Production
+# CD Stage: Deploy to Production via Slots
 # ----------------------------------
 - stage: Deploy_Prod
-  displayName: 'Deploy to Production'
+  displayName: 'Deploy to Production via Slots'
   dependsOn: Deploy_QA
   condition: succeeded()
   variables:
     environmentName: 'Production'
     apiAppName: 'hqms-api'
     mvcAppName: 'hqms-ui'
+    resourceGroup: 'rg-qms-stg' # <-- Update this
   jobs:
     - deployment: DeployProd
-      displayName: 'Deploy Prod Environment'
+      displayName: 'Deploy Prod Environment via Staging Slot'
       environment: $(environmentName)
       strategy:
         runOnce:
@@ -164,17 +179,65 @@ stages:
                 artifact: drop
 
               - task: AzureWebApp@1
-                displayName: 'Deploy API to Prod'
+                displayName: 'Deploy API to Staging Slot'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
                   appName: $(apiAppName)
+                  deployToSlotOrASE: true
+                  slotName: 'staging'
+                  resourceGroupName: $(resourceGroup)
                   package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
 
               - task: AzureWebApp@1
-                displayName: 'Deploy MVC to Prod'
+                displayName: 'Deploy MVC to Staging Slot'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
                   appName: $(mvcAppName)
+                  deployToSlotOrASE: true
+                  slotName: 'staging'
+                  resourceGroupName: $(resourceGroup)
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
+
+              # Optional Smoke Test
+              - task: PowerShell@2
+                displayName: 'Smoke Test API'
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    $response = Invoke-WebRequest -Uri 'https://$(apiAppName)-staging.azurewebsites.net/health' -UseBasicParsing
+                    if ($response.StatusCode -ne 200) {
+                      Write-Error "API smoke test failed"
+                      exit 1
+                    }
+
+              - task: PowerShell@2
+                displayName: 'Smoke Test MVC'
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    $response = Invoke-WebRequest -Uri 'https://$(mvcAppName)-staging.azurewebsites.net' -UseBasicParsing
+                    if ($response.StatusCode -ne 200) {
+                      Write-Error "MVC smoke test failed"
+                      exit 1
+                    }
+
+              # Swap Slots if Smoke Tests Passed
+              - task: AzureAppServiceManage@0
+                displayName: 'Swap API Slot to Production'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  WebAppName: $(apiAppName)
+                  ResourceGroupName: $(resourceGroup)
+                  SourceSlot: 'staging'
+                  SwapWithProduction: true
+
+              - task: AzureAppServiceManage@0
+                displayName: 'Swap MVC Slot to Production'
+                inputs:
+                  azureSubscription: $(azureSubscription)
+                  WebAppName: $(mvcAppName)
+                  ResourceGroupName: $(resourceGroup)
+                  SourceSlot: 'staging'
+                  SwapWithProduction: true

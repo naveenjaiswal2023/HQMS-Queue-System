@@ -156,20 +156,19 @@ stages:
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
 
 # ----------------------------------
-# CD Stage: Deploy to Production via Slots
+# CD Stage: Deploy to Production (Free Tier - No Slots)
 # ----------------------------------
 - stage: Deploy_Prod
-  displayName: 'Deploy to Production via Slots'
+  displayName: 'Deploy to Production (Direct)'
   dependsOn: Deploy_QA
   condition: succeeded()
   variables:
     environmentName: 'Production'
-    apiAppName: 'hqms-api'
-    mvcAppName: 'hqms-ui'
-    resourceGroup: 'rg-qms-stg' # <-- Update this
+    apiAppName: 'hqms-stg-api'
+    mvcAppName: 'hqms-stg'
   jobs:
     - deployment: DeployProd
-      displayName: 'Deploy Prod Environment via Staging Slot'
+      displayName: 'Deploy Prod Environment Directly'
       environment: $(environmentName)
       strategy:
         runOnce:
@@ -179,34 +178,30 @@ stages:
                 artifact: drop
 
               - task: AzureWebApp@1
-                displayName: 'Deploy API to Staging Slot'
+                displayName: 'Deploy API to Production'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
                   appName: $(apiAppName)
-                  deployToSlotOrASE: true
-                  slotName: 'staging'
-                  resourceGroupName: $(resourceGroup)
+                  deployToSlotOrASE: false
                   package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
 
               - task: AzureWebApp@1
-                displayName: 'Deploy MVC to Staging Slot'
+                displayName: 'Deploy MVC to Production'
                 inputs:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
                   appName: $(mvcAppName)
-                  deployToSlotOrASE: true
-                  slotName: 'staging'
-                  resourceGroupName: $(resourceGroup)
+                  deployToSlotOrASE: false
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
 
-              # Optional Smoke Test
+              # Optional Smoke Tests
               - task: PowerShell@2
                 displayName: 'Smoke Test API'
                 inputs:
                   targetType: 'inline'
                   script: |
-                    $response = Invoke-WebRequest -Uri 'https://$(apiAppName)-staging.azurewebsites.net/health' -UseBasicParsing
+                    $response = Invoke-WebRequest -Uri "https://$(apiAppName).azurewebsites.net/health" -UseBasicParsing
                     if ($response.StatusCode -ne 200) {
                       Write-Error "API smoke test failed"
                       exit 1
@@ -217,27 +212,8 @@ stages:
                 inputs:
                   targetType: 'inline'
                   script: |
-                    $response = Invoke-WebRequest -Uri 'https://$(mvcAppName)-staging.azurewebsites.net' -UseBasicParsing
+                    $response = Invoke-WebRequest -Uri "https://$(mvcAppName).azurewebsites.net" -UseBasicParsing
                     if ($response.StatusCode -ne 200) {
                       Write-Error "MVC smoke test failed"
                       exit 1
                     }
-
-              # Swap Slots if Smoke Tests Passed
-              - task: AzureAppServiceManage@0
-                displayName: 'Swap API Slot to Production'
-                inputs:
-                  azureSubscription: $(azureSubscription)
-                  WebAppName: $(apiAppName)
-                  ResourceGroupName: $(resourceGroup)
-                  SourceSlot: 'staging'
-                  SwapWithProduction: true
-
-              - task: AzureAppServiceManage@0
-                displayName: 'Swap MVC Slot to Production'
-                inputs:
-                  azureSubscription: $(azureSubscription)
-                  WebAppName: $(mvcAppName)
-                  ResourceGroupName: $(resourceGroup)
-                  SourceSlot: 'staging'
-                  SwapWithProduction: true

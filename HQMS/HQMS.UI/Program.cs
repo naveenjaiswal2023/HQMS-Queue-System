@@ -199,6 +199,14 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStatusCodePages(async context =>
+{
+    if (context.HttpContext.Response.StatusCode == 401)
+    {
+        context.HttpContext.Response.Redirect("/Auth/Login");
+    }
+});
+
 app.UseSession();
 
 // Optional: log requests with Serilog

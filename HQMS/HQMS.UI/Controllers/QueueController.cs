@@ -1,8 +1,10 @@
 ﻿using HQMS.UI.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HQMS.UI.Controllers
 {
+    [Authorize(Roles = "POD,Doctor")]
     public class QueueController : Controller
     {
         private readonly IQueueService _dashboardService;

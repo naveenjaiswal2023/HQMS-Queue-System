@@ -1,6 +1,5 @@
-﻿using HQMS.Infrastructure.SignalR;
-using HQMS.API.Domain.Interfaces;
-using Microsoft.AspNetCore.Http;
+﻿using HQMS.API.Domain.Interfaces;
+using HQMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
@@ -10,24 +9,28 @@ namespace HQMS.API.WebAPI.Controllers
     [Route("api/[controller]")]
     public class TestController : ControllerBase
     {
-        private readonly IHubContext<NotificationHub> _hubContext;
         private readonly INotificationService _notificationService;
-        public TestController(IHubContext<NotificationHub> hubContext, INotificationService notificationService)
+
+        public TestController(INotificationService notificationService)
         {
-            _hubContext = hubContext;
             _notificationService = notificationService;
         }
 
         [HttpPost("send-test-notification")]
         public async Task<IActionResult> SendTestNotification()
         {
-            var testMessage = new { name = "Test Patient from Background Service" };
-            await _notificationService.SendNotificationAsync("PatientRegisteredEvent", testMessage);
-            //await _hubContext.Clients.All.SendAsync("ReceiveNotification",
-            //    "PatientRegisteredEvent",
-            //    new { name = "Test Patient" });
+            // This payload should mimic real PatientQueuedEvent for testing SignalR
+            var testMessage = new
+            {
+                queueNumber = "Q-101",
+                joinedAt = DateTime.Now,
+                doctorId = Guid.NewGuid(), // Optional if you want to simulate doctor group
+                patientName = "Test Patient"
+            };
 
-            return Ok("Notification sent");
+            await _notificationService.SendNotificationAsync("PatientQueuedEvent", testMessage);
+
+            return Ok("✅ Test notification sent");
         }
     }
 }

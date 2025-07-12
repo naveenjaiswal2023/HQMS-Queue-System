@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HospitalQueueSystem.Web.Controllers
 {
+    [Authorize]
     public class DashboardController : Controller
     {
         private readonly IConfiguration _configuration;

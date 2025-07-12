@@ -1,21 +1,45 @@
 ﻿@using Azure.Core
 @model List<HQMS.UI.Models.QueueDashboardItemDto>
 @using HQMS.UI.Enum;
+@inject IHttpContextAccessor HttpContextAccessor
 
 @{
     ViewData["Title"] = "Queue Dashboard";
+
+    var hospitalId = Context.Request.Query["hospitalId"];
+    var departmentId = Context.Request.Query["departmentId"];
+    var doctorId = Context.Request.Query["doctorId"];
+    //var userRole = HttpContextAccessor.HttpContext?.Session.GetString("UserRole");
+    var userRole = HttpContextAccessor.HttpContext?.Session.GetString("UserRole") ?? "Guest";
+
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">@ViewData["Title"]</h2>
+        @* <h2 class="mb-0">@ViewData["Title"]</h2> *@
         <form method="get" class="d-flex gap-2">
-            <input type="text" name="hospitalId" class="form-control" value="@Context.Request.Query["hospitalId"]" placeholder="Hospital ID" />
-            <input type="text" name="departmentId" class="form-control" value="@Context.Request.Query["departmentId"]" placeholder="Department ID" />
-            <input type="text" name="doctorId" class="form-control" value="@Context.Request.Query["doctorId"]" placeholder="Doctor ID" />
+            <input type="text" name="hospitalId" class="form-control" value="@hospitalId" placeholder="Hospital ID" />
+            <input type="text" name="departmentId" class="form-control" value="@departmentId" placeholder="Department ID" />
+            <input type="text" name="doctorId" class="form-control" value="@doctorId" placeholder="Doctor ID" />
             <button type="submit" class="btn btn-primary">Filter</button>
         </form>
     </div>
+    @if (userRole == "POD")
+    {
+        <div class="mb-4">
+            <form asp-action="VerifyMobile" asp-controller="Queue" method="post" class="d-flex gap-2">
+                <input type="text" name="mobileNumber" class="form-control" placeholder="Enter Mobile Number" required />
+                <button type="submit" class="btn btn-warning">Verify</button>
+            </form>
+
+            @if (ViewBag.IsMobileValid != null)
+            {
+                <div class="mt-2 alert @(ViewBag.IsMobileValid ? "alert-success" : "alert-danger")">
+                    @(ViewBag.IsMobileValid ? "Mobile number is valid." : "Mobile number not found.")
+                </div>
+            }
+        </div>
+    }
 
     <div class="card shadow-sm">
         <div class="card-body table-responsive p-0">
@@ -30,7 +54,7 @@
                         <th>Doctor</th>
                         <th>Hospital</th>
                         <th>Status</th>
-                        <th>Action</th> <!-- 👈 New -->
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,7 +64,7 @@
                         foreach (var item in Model)
                         {
                             <tr>
-                                <td></td>
+                                <td>@idx++</td>
                                 <td>@item.QueueNumber</td>
                                 <td>@item.PatientName</td>
                                 <td>@item.AppointmentTime.ToString("hh:mm tt")</td>
@@ -48,34 +72,32 @@
                                 <td>@item.DoctorName</td>
                                 <td>@item.HospitalName</td>
                                 <td>
-                                    <span class="badge
-                                         @(item.Status == QueueStatus.Pending ? "bg-secondary" :
-                                        item.Status == QueueStatus.InProgress ? "bg-info text-dark" :
-                                        item.Status == QueueStatus.Completed ? "bg-success" :
-                                        item.Status == QueueStatus.Cancelled ? "bg-danger" :
-                                        item.Status == QueueStatus.Called ? "bg-primary" :
-                                        item.Status == QueueStatus.Snooze ? "bg-warning text-dark" : "bg-light")">
-                                        @item.Status
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <form method="post" asp-action="CallQueue" asp-controller="Queue">
-                                        <input type="hidden" name="queueNumber" value="@item.QueueNumber" />
-                                        <button type="submit"
-                                                class="btn btn-sm @(item.Status == QueueStatus.Called ? "btn-secondary" : "btn-success")">
-                                            <i class="bi @(item.Status == QueueStatus.Called ? "bi-check2-circle" : "bi-megaphone-fill")"></i>
-                                            @(item.Status == QueueStatus.Called ? "Called" : "Call")
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        }
+                                    <span class="badge @(item.Status == QueueStatus.Pending ? "bg-secondary" :
+                                                                                                    item.Status == QueueStatus.InProgress ? "bg-info text-dark" :
+                                                                                                    item.Status == QueueStatus.Completed ? "bg-success" :
+                                                                                                    item.Status == QueueStatus.Cancelled ? "bg-danger" :
+                                                                                                    item.Status == QueueStatus.Called ? "bg-primary" :
+                                                                                                    item.Status == QueueStatus.Snooze ? "bg-warning text-dark" : "bg-light")">
+                                @item.Status
+                            </span>
+                        </td>
+                        <td>
+                            <form method="post" asp-action="CallQueue" asp-controller="Queue">
+                                <input type="hidden" name="queueNumber" value="@item.QueueNumber" />
+                                <button type="submit"
+                                        class="btn btn-sm @(item.Status == QueueStatus.Called ? "btn-secondary" : "btn-success")">
+                                    <i class="bi @(item.Status == QueueStatus.Called ? "bi-check2-circle" : "bi-megaphone-fill")"></i>
+                                    @(item.Status == QueueStatus.Called ? "Called" : "Call")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                                        }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center text-muted">No queue data found.</td>
+                            <td colspan="9" class="text-center text-muted">No queue data found.</td>
                         </tr>
                     }
                 </tbody>
@@ -83,3 +105,88 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // ✅ Define globally so SignalR can call it
+            window.refreshQueueDashboard = function () {
+            console.log("🔄 Refreshing queue dashboard...");
+
+            const hospitalId = '@hospitalId';
+            const departmentId = '@departmentId';
+            const doctorId = '@doctorId';
+
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.warn("⚠️ No JWT token found. Cannot fetch dashboard data.");
+                return;
+            }
+
+            const url = `/Queue/GetDashboardData?hospitalId=${hospitalId}&departmentId=${departmentId}&doctorId=${doctorId}`;
+
+            fetch(url, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log("✅ Queue data received:", data);
+                updateDashboardTable(data);
+            })
+            .catch(err => console.error("❌ Dashboard refresh failed:", err));
+        };
+
+
+        // // ✅ Render queue table safely
+                function updateDashboardTable(data) {
+            const tbody = document.querySelector("#patientsTable tbody");
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No queue data found.</td></tr>`;
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const statusClass = {
+                    "Pending": "bg-secondary",
+                    "InProgress": "bg-info text-dark",
+                    "Completed": "bg-success",
+                    "Cancelled": "bg-danger",
+                    "Called": "bg-primary",
+                    "Snooze": "bg-warning text-dark"
+                }[item.status] || "bg-light";
+
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.queueNumber}</td>
+                    <td>${item.patientName}</td>
+                    <td>${new Date(item.appointmentTime).toLocaleTimeString()}</td>
+                    <td>${item.department}</td>
+                    <td>${item.doctorName}</td>
+                    <td>${item.hospitalName}</td>
+                    <td><span class="badge ${statusClass}">${item.status}</span></td>
+                    <td>
+                        <form method="post" action="/Queue/CallQueue">
+                            <input type="hidden" name="queueNumber" value="${item.queueNumber}" />
+                            <button type="submit" class="btn btn-sm ${item.status === 'Called' ? 'btn-secondary' : 'btn-success'}">
+                                <i class="bi ${item.status === 'Called' ? 'bi-check2-circle' : 'bi-megaphone-fill'}"></i>
+                                ${item.status === 'Called' ? 'Called' : 'Call'}
+                            </button>
+                        </form>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+}
+    <!-- 👇 Load SignalR listener AFTER functions are declared -->
+    <script src="~/js/site-notifications.js"></script>

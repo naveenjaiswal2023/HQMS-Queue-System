@@ -1,8 +1,10 @@
 ﻿using Azure.Messaging.ServiceBus;
+using HQMS.API.Domain.Entities;
 using HQMS.API.Domain.Events;
 using MediatR;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace HQMS.API.Application.EventHandlers
@@ -16,11 +18,21 @@ namespace HQMS.API.Application.EventHandlers
         public PatientQueuedEventHandler(
             ServiceBusClient serviceBusClient,
             ILogger<PatientQueuedEventHandler> logger,
-            IConfiguration configuration)
+            IOptions<ServiceBusSettings> options)
         {
             _serviceBusClient = serviceBusClient;
             _logger = logger;
-            _topicName = configuration["AzureServiceBus:QmsNotificationTopic"];
+
+            // Get the topic for "doctor-dashboard-update"
+            var topicEntry = options.Value.TopicSubscriptions
+                ?.FirstOrDefault(t => t.SubscriptionName == "notification-service");
+
+            if (topicEntry == null || string.IsNullOrWhiteSpace(topicEntry.TopicName))
+            {
+                throw new InvalidOperationException("Topic for 'doctor-dashboard-update' is not configured properly.");
+            }
+
+            _topicName = topicEntry.TopicName;
         }
 
         public async Task Handle(PatientQueuedEvent notification, CancellationToken cancellationToken)

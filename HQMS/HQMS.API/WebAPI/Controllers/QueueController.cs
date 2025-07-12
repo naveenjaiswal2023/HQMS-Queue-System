@@ -5,12 +5,13 @@ using HQMS.API.Domain.Entities;
 using HQMS.API.WebAPI.Controllers;
 using HQMS.Domain.Events;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HQMS.WebAPI.Controllers
 {
-    
+    [Authorize(Roles = "POD,Doctor")]
     public class QueueController : BaseApiController
     {
         //[HttpPost("process/{id}")]

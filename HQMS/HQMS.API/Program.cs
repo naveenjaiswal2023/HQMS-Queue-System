@@ -37,6 +37,9 @@ using HQMS.Infrastructure.Seed;
 var builder = WebApplication.CreateBuilder(args);
 
 // Bind base + environment-specific appsettings
+builder.Services.Configure<ServiceBusSettings>(
+    builder.Configuration.GetSection("ServiceBus"));
+
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -169,7 +172,27 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
+
+    // 👇👇 This enables SignalR to receive JWT from query string (required for WebSockets)
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+
+            // If the request is for the SignalR hub
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/notificationHub")) // 👈 Match your hub route
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
+
 
 // Azure Service Bus connection
 //var serviceBusConnectionString = Environment.GetEnvironmentVariable("SERVICEBUS_CONNECTIONSTRING");
@@ -185,27 +208,32 @@ builder.Services.AddSingleton(serviceProvider =>
     var connectionString = builder.Configuration["AzureServiceBus:ConnectionString"];
     return new ServiceBusClient(connectionString);
 });
+var serviceBusSettings = builder.Configuration
+    .GetSection("ServiceBus").Get<ServiceBusSettings>();
+
+builder.Services.AddSingleton(serviceBusSettings.TopicSubscriptions);
+
 
 // Register ServiceBusSender for patient-topic (Singleton)
-builder.Services.AddSingleton(serviceProvider =>
-{
-    var serviceBusClient = serviceProvider.GetRequiredService<ServiceBusClient>();
-    return serviceBusClient.CreateSender("patient-topic"); // Specify the topic name here
-});
+//builder.Services.AddSingleton(serviceProvider =>
+//{
+//    var serviceBusClient = serviceProvider.GetRequiredService<ServiceBusClient>();
+//    return serviceBusClient.CreateSender("patient-topic"); // Specify the topic name here
+//});
 
-// Register ServiceBusSender for doctor-queue topic (Singleton)
-builder.Services.AddSingleton(serviceProvider =>
-{
-    var serviceBusClient = serviceProvider.GetRequiredService<ServiceBusClient>();
-    return serviceBusClient.CreateSender("doctor-queue"); // Specify the topic name here
-});
+//// Register ServiceBusSender for doctor-queue topic (Singleton)
+//builder.Services.AddSingleton(serviceProvider =>
+//{
+//    var serviceBusClient = serviceProvider.GetRequiredService<ServiceBusClient>();
+//    return serviceBusClient.CreateSender("doctor-queue"); // Specify the topic name here
+//});
 
-// Register topics/subscriptions as List<TopicSubscriptionPair>
-builder.Services.AddSingleton(new List<TopicSubscriptionPair>
-{
-    new TopicSubscriptionPair { TopicName = "patient-topic", SubscriptionName = "qms-subscription" },
-    new TopicSubscriptionPair { TopicName = "doctor-queue", SubscriptionName = "doctor-queue-subscription" }
-});
+//// Register topics/subscriptions as List<TopicSubscriptionPair>
+//builder.Services.AddSingleton(new List<TopicSubscriptionPair>
+//{
+//    new TopicSubscriptionPair { TopicName = "patient-topic", SubscriptionName = "qms-subscription" },
+//    new TopicSubscriptionPair { TopicName = "doctor-queue", SubscriptionName = "doctor-queue-subscription" }
+//});
 
 // Event Handlers
 builder.Services.AddScoped<DoctorQueueCreatedEventHandler>();
@@ -218,17 +246,6 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
-
-//builder.Services.AddHttpClient<IExternalHospitalService, ExternalHospitalService>((sp, client) =>
-//{
-//    var config = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
-//    client.BaseAddress = new Uri(config.BaseUrl);
-//    client.DefaultRequestHeaders.Add("Accept", "application/json");
-//})
-//.AddTransientHttpErrorPolicy(policyBuilder =>
-//    policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-//.AddTransientHttpErrorPolicy(policyBuilder =>
-//    policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
 // CORS
 

@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+﻿window.addEventListener("DOMContentLoaded", function () {
     let notificationCount = 0;
 
     function showNotification(message) {
@@ -13,9 +13,7 @@
 
         toast.innerHTML = `
             <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
+                <div class="toast-body">${message}</div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>`;
 
@@ -29,27 +27,23 @@
 
     function saveNotification(message) {
         const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
-        notifications.push({
-            message: message,
-            timestamp: new Date().toISOString()
-        });
+        notifications.push({ message, timestamp: new Date().toISOString() });
         localStorage.setItem('notifications', JSON.stringify(notifications));
     }
 
     function loadNotificationsOnPageLoad() {
-        let notificationCount = 0;
         const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
         notificationCount = notifications.length;
 
-        notifications.forEach(n => {
-            addNotificationToDropdown(n.message);
-        });
+        notifications.forEach(n => addNotificationToDropdown(n.message));
+
         const countSpan = document.getElementById('notificationCount');
         if (countSpan) {
             countSpan.textContent = notificationCount;
             countSpan.style.display = notificationCount > 0 ? 'inline' : 'none';
-            localStorage.removeItem('notifications');
         }
+
+        localStorage.removeItem('notifications');
     }
 
     function addNotificationToDropdown(messageText) {
@@ -86,10 +80,7 @@
             notificationCount = 0;
             countSpan.textContent = '0';
             countSpan.style.display = 'none';
-
-            // Mark all current notifications as seen
-            const now = new Date().toISOString();
-            localStorage.setItem('notificationsLastSeen', now);
+            localStorage.setItem('notificationsLastSeen', new Date().toISOString());
         });
     }
 
@@ -98,29 +89,52 @@
     const hubUrl = window.signalRHubUrl || "/notificationHub";
 
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl)
-        .configureLogging(signalR.LogLevel.Debug)
+        .withUrl(hubUrl, {
+            accessTokenFactory: () => {
+                const token = localStorage.getItem("token"); // Or wherever you store your JWT
+                console.log("🔑 Using access token:", token); // Optional: for debugging
+                return token;
+            }
+        })
+        .configureLogging(signalR.LogLevel.Information)
         .withAutomaticReconnect([0, 2000, 10000, 30000])
         .build();
 
+
     connection.on("ReceiveNotification", function (eventName, message) {
-        console.log("SignalR Received:", eventName, message);
+        console.log("📡 SignalR Received:", eventName, message);
 
         let displayMessage = "";
+
         switch (eventName) {
-            case "PatientRegisteredEvent":
-                displayMessage = `🩺 New patient registered: ${message.name}`;
-                break;
-            case "PatientUpdatedEvent":
-                displayMessage = `🔄 Patient updated: ${message.name}`;
-                break;
-            case "PatientDeletedEvent":
-                displayMessage = `❌ Patient deleted: ${message.name}`;
-                break;
             case "PatientQueuedEvent":
                 const appointmentTime = new Date(message.joinedAt).toLocaleString();
                 displayMessage = `📋 Patient queued: Queue #${message.queueNumber}, Appointment at ${appointmentTime}`;
+
+                if (typeof window.refreshQueueDashboard === 'function') {
+                    console.log("🔁 Calling refreshQueueDashboard()");
+                    try {
+                        window.refreshQueueDashboard();
+                    } catch (e) {
+                        console.error("❌ refreshQueueDashboard error:", e);
+                    }
+                } else {
+                    console.warn("⚠ refreshQueueDashboard not defined!");
+                }
                 break;
+
+            case "PatientRegisteredEvent":
+                displayMessage = `🩺 New patient registered: ${message.name}`;
+                break;
+
+            case "PatientUpdatedEvent":
+                displayMessage = `🔄 Patient updated: ${message.name}`;
+                break;
+
+            case "PatientDeletedEvent":
+                displayMessage = `❌ Patient deleted: ${message.name}`;
+                break;
+
             default:
                 displayMessage = `📢 ${eventName}: ${JSON.stringify(message)}`;
                 break;
@@ -129,9 +143,20 @@
         showNotification(displayMessage);
         addNotificationToDropdown(displayMessage);
         updateNotificationCount();
-    });
-
+    })
     connection.start()
-        .then(() => console.log("✅ SignalR connected"))
-        .catch(err => console.error("❌ SignalR error:", err));
+        .then(() => {
+            console.log("✅ SignalR connected");
+
+            // Join POD group (for POD dashboard)
+            connection.invoke("JoinGroup", "POD");
+
+            // Join DoctorId group (if on doctor dashboard)
+            const doctorId = window.currentDoctorId;
+            if (doctorId) {
+                connection.invoke("JoinGroup", doctorId.toString());
+            }
+        })
+        .catch(err => console.error("❌ SignalR connection failed:", err));
+
 });

@@ -64,8 +64,15 @@
             icon.classList.toggle("fa-eye");
             icon.classList.toggle("fa-eye-slash");
         }
+
+        // Debug log
+        console.log("Setting token from session:", @Html.Raw(Json.Serialize(Context.Session.GetString("JwtToken") ?? "")));
+
+        // Store JWT token
+        localStorage.setItem("token", @Html.Raw(Json.Serialize(Context.Session.GetString("JwtToken") ?? "")));
     </script>
 }
+
 
 @section ToastScripts {
     <script>
@@ -85,4 +92,5 @@
                 <text>toastr.error("@TempData["ErrorMessage"]");</text>
         }
     </script>
+
 }

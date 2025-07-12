@@ -88,8 +88,8 @@ stages:
   dependsOn: Build
   variables:
     environmentName: 'Development'
-    apiAppName: 'hqms-api'
-    mvcAppName: 'hqms-ui'
+    apiAppName: 'hqms-stg-api'
+    mvcAppName: 'hqms-stg'
   jobs:
     - deployment: DeployDev
       displayName: 'Deploy Dev Environment'
@@ -126,8 +126,8 @@ stages:
   condition: succeeded()
   variables:
     environmentName: 'QA'
-    apiAppName: 'hqms-api'
-    mvcAppName: 'hqms-ui'
+    apiAppName: 'hqms-stg-api'
+    mvcAppName: 'hqms-stg'
   jobs:
     - deployment: DeployQA
       displayName: 'Deploy QA Environment'

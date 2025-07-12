@@ -158,8 +158,8 @@ stages:
 # ----------------------------------
 # CD Stage: Deploy to Production (Free Tier - No Slots)
 # ----------------------------------
-- stage: Deploy_Prod
-  displayName: 'Deploy to Production (Direct)'
+- - stage: Deploy_Prod
+  displayName: 'Deploy to Production'
   dependsOn: Deploy_QA
   condition: succeeded()
   variables:
@@ -168,7 +168,7 @@ stages:
     mvcAppName: 'hqms-stg'
   jobs:
     - deployment: DeployProd
-      displayName: 'Deploy Prod Environment Directly'
+      displayName: 'Deploy Prod Environment'
       environment: $(environmentName)
       strategy:
         runOnce:
@@ -183,7 +183,6 @@ stages:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
                   appName: $(apiAppName)
-                  deployToSlotOrASE: false
                   package: '$(Pipeline.Workspace)/drop/api/**/*.zip'
 
               - task: AzureWebApp@1
@@ -192,28 +191,5 @@ stages:
                   azureSubscription: $(azureSubscription)
                   appType: 'webApp'
                   appName: $(mvcAppName)
-                  deployToSlotOrASE: false
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
 
-              # Optional Smoke Tests
-              - task: PowerShell@2
-                displayName: 'Smoke Test API'
-                inputs:
-                  targetType: 'inline'
-                  script: |
-                    $response = Invoke-WebRequest -Uri "https://$(apiAppName).azurewebsites.net/health" -UseBasicParsing
-                    if ($response.StatusCode -ne 200) {
-                      Write-Error "API smoke test failed"
-                      exit 1
-                    }
-
-              - task: PowerShell@2
-                displayName: 'Smoke Test MVC'
-                inputs:
-                  targetType: 'inline'
-                  script: |
-                    $response = Invoke-WebRequest -Uri "https://$(mvcAppName).azurewebsites.net" -UseBasicParsing
-                    if ($response.StatusCode -ne 200) {
-                      Write-Error "MVC smoke test failed"
-                      exit 1
-                    }

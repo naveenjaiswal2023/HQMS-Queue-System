@@ -158,13 +158,13 @@ stages:
 # ----------------------------------
 # CD Stage: Deploy to Production (Free Tier - No Slots)
 # ----------------------------------
-- - stage: Deploy_Prod
+- stage: Deploy_Prod
   displayName: 'Deploy to Production'
   dependsOn: Deploy_QA
   condition: succeeded()
   variables:
     environmentName: 'Production'
-    apiAppName: 'hqms-stg-api'
+    apiAppName: 'hqms-stg-api'  # <-- Make sure these values are correct
     mvcAppName: 'hqms-stg'
   jobs:
     - deployment: DeployProd
@@ -192,4 +192,3 @@ stages:
                   appType: 'webApp'
                   appName: $(mvcAppName)
                   package: '$(Pipeline.Workspace)/drop/mvc/**/*.zip'
-

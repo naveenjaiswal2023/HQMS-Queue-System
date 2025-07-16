@@ -1,61 +1,59 @@
 ﻿using HQMS.API.Domain.Interfaces;
-using Microsoft.Extensions.Caching.Distributed;
-using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace HQMS.API.Application.Services
 {
     public class CacheService : ICacheService
     {
-        private readonly IDistributedCache _cache;
+        private readonly IMemoryCache _cache;
 
-        public CacheService(IDistributedCache cache)
+        public CacheService(IMemoryCache cache)
         {
             _cache = cache;
-
         }
 
-        public async Task<T> GetAsync<T>(string key) where T : class
+        public Task<T> GetAsync<T>(string key) where T : class
         {
-            var cached = await _cache.GetStringAsync(key);
-            if (cached == null)
-                return null;
-
-            return JsonSerializer.Deserialize<T>(cached);
+            _cache.TryGetValue(key, out T value);
+            return Task.FromResult(value);
         }
 
-        public async Task SetAsync<T>(string key, T value, TimeSpan? absoluteExpiration = null, TimeSpan? slidingExpiration = null) where T : class
+        public Task SetAsync<T>(string key, T value, TimeSpan? absoluteExpiration = null, TimeSpan? slidingExpiration = null) where T : class
         {
-            var json = JsonSerializer.Serialize(value);
+            var options = new MemoryCacheEntryOptions();
 
-            var options = new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = absoluteExpiration ?? TimeSpan.FromMinutes(30),
-                SlidingExpiration = slidingExpiration
-            };
+            if (absoluteExpiration.HasValue)
+                options.SetAbsoluteExpiration(absoluteExpiration.Value);
 
-            await _cache.SetStringAsync(key, json, options);
+            if (slidingExpiration.HasValue)
+                options.SetSlidingExpiration(slidingExpiration.Value);
+
+            _cache.Set(key, value, options);
+
+            return Task.CompletedTask;
         }
 
-        public async Task RemoveAsync(string key)
+        public Task RemoveAsync(string key)
         {
-            await _cache.RemoveAsync(key);
+            _cache.Remove(key);
+            return Task.CompletedTask;
         }
 
-        public async Task UpdateCacheAsync<T>(string key, T data, TimeSpan? expiry = null) where T : class
+        public Task UpdateCacheAsync<T>(string key, T data, TimeSpan? expiry = null) where T : class
         {
-            await SetAsync(key, data, expiry);
+            return SetAsync(key, data, expiry);
         }
 
-        public async Task UpdateCacheAsync<T>(string keyPrefix, Guid id, T data, TimeSpan? expiry = null) where T : class
+        public Task UpdateCacheAsync<T>(string keyPrefix, Guid id, T data, TimeSpan? expiry = null) where T : class
         {
             var key = $"{keyPrefix}:{id}";
-            await SetAsync(key, data, expiry);
+            return SetAsync(key, data, expiry);
         }
 
-        public async Task<bool> ExistsAsync(string key)
+        public Task<bool> ExistsAsync(string key)
         {
-            var cachedValue = await _cache.GetStringAsync(key);
-            return !string.IsNullOrEmpty(cachedValue);
+            return Task.FromResult(_cache.TryGetValue(key, out _));
         }
     }
 }

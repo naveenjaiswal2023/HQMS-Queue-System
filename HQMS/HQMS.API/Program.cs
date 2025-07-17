@@ -197,7 +197,7 @@ builder.Services.AddCors(options =>
         policyBuilder
             .WithOrigins(
                 "https://localhost:7026",
-                "https://hqms-ui-bwgnfqd6f6abg0es.eastasia-01.azurewebsites.net")
+                "https://hqms-stg-azhxbjbjd7bhhqcu.canadacentral-01.azurewebsites.net")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

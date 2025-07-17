@@ -11,10 +11,13 @@ namespace HQMS.API.Infrastructure
         private readonly IServiceProvider _serviceProvider;
         private readonly int _intervalMinutes;
 
-        public QueueScheduler(IServiceProvider serviceProvider, IConfiguration config)
+        private readonly ILogger<QueueScheduler> _logger;
+
+        public QueueScheduler(IServiceProvider serviceProvider, IConfiguration config, ILogger<QueueScheduler> logger)
         {
             _serviceProvider = serviceProvider;
             _intervalMinutes = config.GetValue<int>("QueueScheduler:IntervalMinutes", 1);
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -47,7 +50,7 @@ namespace HQMS.API.Infrastructure
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error scheduling queue for appointment {appt.Id}: {ex.Message}");
+                        _logger.LogError($"Error scheduling queue for appointment {appt.Id}: {ex.Message}");
                         // optionally log
                     }
                 }
